@@ -6,10 +6,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable,HasApiTokens,Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -43,5 +44,16 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+    public function selectedApp()
+    {
+        return $this->hasOne(Application::class, 'owner_id')
+                    ->where('is_selected', true);
+    }
+    public function applications(){
+        return $this->hasMany(Application::class,'owner_id','id');
+    }
+    public function customerOf(){
+        return $this->hasMany(Customer::class,'customer_id','id')->where('invite_status','joined');
     }
 }
