@@ -1,9 +1,16 @@
 <script setup>
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Head } from '@inertiajs/vue3';
+    import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+    import {
+        Button
+    } from '@/components/ui/button'
+
+    import {
+        Head
+    } from '@inertiajs/vue3';
 </script>
 
 <template>
+
     <Head title="Dashboard" />
 
     <AuthenticatedLayout>
@@ -15,15 +22,18 @@ import { Head } from '@inertiajs/vue3';
             </h2>
         </template>
 
-        <div class="py-12">
-            <div class="mx-auto max-w-7xl sm:px-6 lg:px-8">
-                <div
-                    class="overflow-hidden bg-white shadow-sm sm:rounded-lg dark:bg-gray-800"
-                >
-                    <div class="p-6 text-gray-900 dark:text-gray-100">
-                        You're logged in!
-                    </div>
-                </div>
+
+        <div class="flex items-center justify-center flex-1 border border-dashed rounded-lg shadow-sm">
+            <div class="flex flex-col items-center gap-1 text-center">
+                <h3 class="text-2xl font-bold tracking-tight">
+                    You have no products
+                </h3>
+                <p class="text-sm text-muted-foreground">
+                    You can start selling as soon as you add a product.
+                </p>
+                <Button class="mt-4">
+                    Add Product
+                </Button>
             </div>
         </div>
     </AuthenticatedLayout>
