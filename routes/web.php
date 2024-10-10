@@ -1,6 +1,9 @@
 <?php
 
+use App\Http\Controllers\Admin\AuthLoader as AdminAuthLoader;
 use Inertia\Inertia;
+use App\Models\AuthLoader;
+use Illuminate\Http\Request;
 use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Foundation\Application;
@@ -16,25 +19,25 @@ Route::get('/', function () {
     ]);
 });
 
-Route::get('/dashboard', function () {
-    return Inertia::render('Dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
-Route::get('/loader-updates', function () {
-    return Inertia::render('LoaderUpdates');
-})->middleware(['auth', 'verified'])->name( 'loader');
-Route::get('/products', function () {
+Route::prefix('admins')->middleware( ['auth','verified'])->group(function () {
+    Route::get('/dashboard', function () {
+        return Inertia::render('Dashboard');
+    })->middleware(['auth', 'verified'])->name('dashboard');
+    Route::resource('loader-updates', AdminAuthLoader::class);
+    Route::get('/products', function () {
 
-    return Inertia::render('Products');
-})->middleware(['auth', 'verified'])->name('products');
+        return Inertia::render('Products');
+    })->middleware(['auth', 'verified'])->name('products');
 
-Route::get('/orders', function () {
+    Route::get('/orders', function () {
 
-    return Inertia::render('Orders');
-})->middleware(['auth', 'verified'])->name('orders');
+        return Inertia::render('Orders');
+    })->middleware(['auth', 'verified'])->name('orders');
 
-Route::get('/users', function () {
-    return Inertia::render('Users');
-})->middleware(['auth', 'verified'])->name('users');
+    Route::get('/users', function () {
+        return Inertia::render('Users');
+    })->middleware(['auth', 'verified'])->name('users');
+});
 
 
 Route::middleware( 'auth')->group(function () {

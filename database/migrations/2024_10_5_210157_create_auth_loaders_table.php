@@ -13,11 +13,14 @@ return new class extends Migration
     {
         Schema::create('auth_loaders', function (Blueprint $table) {
             $table->id();
-            $table->string('version');
+            $table->string('lang');
+            $table->string('loader_type')->default('no_ui');
+            $table->decimal('version',8,2);
             $table->string('hash');
             $table->string('path');
             $table->timestamp('unsupported_at')->nullable();
             $table->json('tags')->nullable();
+            $table->json('update_note')->nullable();
             $table->timestamps();
         });
     }

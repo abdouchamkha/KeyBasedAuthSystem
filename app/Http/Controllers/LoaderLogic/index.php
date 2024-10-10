@@ -66,20 +66,6 @@ class index extends Controller
     public function init($request, $ipAddress)
     {
         try {
-            if (!$this->common->isValidUuid($request['app_id'])) {
-                return $this->common->returnBadRequest();
-            }
-            //check if the app is active
-            if(!Application::where('token',Hash::make($request['app_id']))->where('status',ActiveType::ACTIVE)->exists()){
-                $response = [
-                    'success' => false,
-                    'message' => 'Application not active or invalid.',
-                ];
-                Http::post($this->webhookUrl, [
-                    'content' => "Application not active or invalid app token: " . $request['app_id'] . "\nReq hased token : " . Hash::make($request['app_id']),
-                ]);
-                return response($this->common->encryptJson($response), 404);
-            }
             $auth_loader = AuthLoader::select(['id', 'version', 'created_at', 'unsupported_at', 'hash'])
                 ->latest()
                 ->limit(2)
@@ -103,6 +89,20 @@ class index extends Controller
                     'content' => "res 303\n```json\n" . json_encode($response, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\nERROR E:" . $e->getMessage() . "```",
                 ]);
                 return response($this->common->encryptJson($response), 200);
+            }
+            if (!$this->common->isValidUuid($request['app_id'])) {
+                return $this->common->returnBadRequest();
+            }
+            //check if the app is active
+            if(!Application::where('token',Hash::make($request['app_id']))->where('status',ActiveType::ACTIVE)->exists()){
+                $response = [
+                    'success' => false,
+                    'message' => 'Application not active or invalid.',
+                ];
+                Http::post($this->webhookUrl, [
+                    'content' => "Application not active or invalid app token: " . $request['app_id'] . "\nReq hased token : " . Hash::make($request['app_id']),
+                ]);
+                return response($this->common->encryptJson($response), 404);
             }
             // Check hash using the determined version
             if ($usedVersion && $usedVersion->hash !== $request['hash']) {

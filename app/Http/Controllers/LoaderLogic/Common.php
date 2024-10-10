@@ -114,4 +114,8 @@ class Common extends Controller
             return false;
         }
     }
+    public function isValidMd5($string) {
+        return preg_match('/^[a-f0-9]{32}$/', $string);
+    }
+
 }
