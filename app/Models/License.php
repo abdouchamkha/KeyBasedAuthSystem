@@ -26,7 +26,7 @@ class License extends Model
         return $this->hasOne('App\Models\Product','id','product_id');
     }
     public function app(){
-        return $this->hasOne('App\Models\Application');
+        return $this->hasOne('App\Models\Application','id','app_id');
     }
     public function user(){
         return $this->hasOne('App\Models\User');

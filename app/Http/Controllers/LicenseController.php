@@ -80,7 +80,9 @@ class LicenseController extends Controller
 
         // Calculate the total subscription duration in hours
         $subscriptionDuration = ($validatedData['days'] * 24) + $validatedData['hours'] + ceil($validatedData['minutes'] / 60);
-
+        if ($subscriptionDuration == 0) {
+            return response()->json(['error' => 'The license need to be more then 0 hours.'], 400);
+        }
         // Generate a unique license key (customize the format as needed)
         // $licenseKey = strtoupper(Str::random(16));
 

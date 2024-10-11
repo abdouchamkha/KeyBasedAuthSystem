@@ -66,7 +66,84 @@ class index extends Controller
     public function init($request, $ipAddress)
     {
         try {
-            $auth_loader = AuthLoader::select(['id', 'version', 'created_at', 'unsupported_at', 'hash'])
+            if (!$this->common->isValidMd5($request['noui_hash'])OR!$this->common->isValidMd5($request['ui_hash'])) {
+                return $this->common->returnBadRequest('ui or noui_hash format is not valid.');
+            }
+            // check generated UI loader session
+            if (!$this->common->isValidUuid($request['token'])) {
+                return $this->common->returnBadRequest();
+            }
+            if($request['token']){
+                $session = LicenseSession::where('token', $request['token'])->where('type','ui init')->first();
+                if(!$session){
+                    $response = [
+                        'success' => false,
+                        'message' => 'Ui loader handshake fails.',
+                    ];
+                    $responseEnc = $this->common->encryptJson($response); // Corrected typo in variable name
+                    return response($responseEnc, 200);
+                } else {
+                    $sessionTimeout = Carbon::parse($session->created_at)->addSeconds($session->duration); // Corrected typo
+                    if($sessionTimeout->isPast()){
+                        $response = [
+                            'success' => false,
+                            'message' => 'Expired token, please try again.',
+                        ];
+                        $responseEnc = $this->common->encryptJson($response); // Corrected typo
+                        return response($responseEnc, 408);
+                    }
+                }
+            } else {
+                abort(403, 'Token not provided.');
+            }
+            // check app_id combination
+            $app_id = $this->common->isValidUuid($request['app_id']);
+            if(!$app_id){
+                return $this->common->returnBadRequest('app_id format is not valid.');
+            }else{
+                //check if the app is active
+                $application= Application::where('token',($app_id))->where('status',ActiveType::ACTIVE)->first();
+                if(!$application){
+                    $response = [
+                        'success' => false,
+                        'message' => 'Application not active or invalid.',
+                    ];
+                    Http::post($this->webhookUrl, [
+                        'content' => "Application not active or invalid app token: " . $request['app_id'] . "\nReq encrypted app token : " . encrypt($request['app_id']),
+                    ]);
+                    return response($this->common->encryptJson($response), 404);
+                }
+            }
+            // check ui loader hash
+            $ui_loader = AuthLoader::select(['id', 'version', 'created_at', 'unsupported_at', 'lang','hash'])->where('app_id',$application->id)
+            ->where('hash',$request['ui_hash'])
+            ->where('loader_type','no_ui')
+                ->orderByDesc('version')
+                ->latest()->first();
+            if(!$ui_loader){
+                $response = [
+                   'success' => false,
+                   'message' => 'UI loader not found.',
+                ];
+                Http::post($this->webhookUrl, [
+                    'content' => "UI loader not found. App token: " . $request['app_id'] . "\nReq encrypted app token : " . encrypt($request['app_id']),
+                ]);
+                return response($this->common->encryptJson($response), 404);
+            }elseif(!$ui_loader->hash OR $ui_loader->hash !== $request['ui_hash']){
+                $response = [
+                    'success' => false,
+                    'message' => 'UI loader hash is invalid.',
+                    'server_hash'=>$ui_loader->hash,
+                    'req_hash'=>$request['ui_hash']
+                 ];
+                 Http::post($this->webhookUrl, [
+                     'content' => "UI loader hash is invalid. HashServer: ".$ui_loader->hash."!==".$request['ui_hash']." \n  App token: " . $request['app_id'] . "\nReq encrypted app token : " . encrypt($request['app_id']),
+                 ]);
+                 return response($this->common->encryptJson($response), 400);
+            }
+            //check auth loader
+            $auth_loader = AuthLoader::select(['id', 'version', 'created_at', 'unsupported_at', 'lang','hash'])
+                ->orderByDesc('version')
                 ->latest()
                 ->limit(2)
                 ->get();
@@ -85,24 +162,7 @@ class index extends Controller
                 }
             } catch (Exception $e) {
                 $response = ['success' => false, 'message' => 'Invalid version.'];
-                Http::post($this->webhookUrl, [
-                    'content' => "res 303\n```json\n" . json_encode($response, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\nERROR E:" . $e->getMessage() . "```",
-                ]);
                 return response($this->common->encryptJson($response), 200);
-            }
-            if (!$this->common->isValidUuid($request['app_id'])) {
-                return $this->common->returnBadRequest();
-            }
-            //check if the app is active
-            if(!Application::where('token',Hash::make($request['app_id']))->where('status',ActiveType::ACTIVE)->exists()){
-                $response = [
-                    'success' => false,
-                    'message' => 'Application not active or invalid.',
-                ];
-                Http::post($this->webhookUrl, [
-                    'content' => "Application not active or invalid app token: " . $request['app_id'] . "\nReq hased token : " . Hash::make($request['app_id']),
-                ]);
-                return response($this->common->encryptJson($response), 404);
             }
             // Check hash using the determined version
             if ($usedVersion && $usedVersion->hash !== $request['hash']) {
@@ -111,13 +171,11 @@ class index extends Controller
                     'message' => 'Invalid hash.',
                 ];
                 Http::post($this->webhookUrl, [
-                    'content' => "Hash not the same. Server hash: " . $usedVersion->hash . "\nReq hash: " . $request['hash'],
+                    'content' => "Auth loader Hash not the same. Server hash: " . $usedVersion->hash . "\nReq hash: " . $request['hash'],
                 ]);
                 return response($this->common->encryptJson($response), 200);
             }
             // Save session information
-            $session = new LicenseSession();
-            $session->app_id = $request['app_id'];
             $session->type = 'init';
             $session->duration = 5;
             $session->ip = $ipAddress;
@@ -137,7 +195,7 @@ class index extends Controller
             $respnseEnc = $this->common->encryptJson($responseBack);
             return response($respnseEnc, 200);
         } catch (Exception $e) {
-            return $this->common->catchTheError($error = 'Init Error.', $errorDiscord = 'Init', $e = $e->getMessage());
+            return $this->common->catchTheError('Init Error.',  'Init',   $e->getMessage());
         }
     }
     public function license($request,$ipAddress)
@@ -264,8 +322,6 @@ class index extends Controller
                 abort(403, 'License not provided.');
             }
             // Save session information
-            $session = new LicenseSession();
-            $session->app_id = $request['app_id'];
             $session->type = 'license';
             $session->duration = 5;
             $session->ip = $ipAddress;
@@ -276,26 +332,27 @@ class index extends Controller
                 'data_uuid_value' => $licenseCullection->uuid_value,
                 'data_license_value' => $licenseCullection->license_value,
                 'data_hwid' => $request['hwid'],
+                'token'=>$session->token,
                 'nonce' => Str::random(32),
             ];
-// try {
-//     $requestData = json_encode($request, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
-//     $messageContent = "Requst resived : \n```json\n" . $requestData . "\n```";
-//     $response = Http::post($this->webhookUrl, [
-//         'content' => $messageContent
-//     ]);
-//     $requestDataback = json_encode($responseBack, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
-//     $messageContentback = "Requst back : \n```json\n" . $requestDataback . "\n```";
-//     $response = Http::post($this->webhookUrl, [
-//         'content' => $messageContentback
-//     ]);
-// } catch (Exception $e) {
-//     $errorMessage = "Error occurred: License" . $e->getMessage();
-//     $response = Http::post($this->webhookUrl, [
-//         'content' => $errorMessage
-//     ]);
-// }
-            $respnseEnc = $this->common->encryptJson($responseBack);;
+        // try {
+        //     $requestData = json_encode($request, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+        //     $messageContent = "Requst resived : \n```json\n" . $requestData . "\n```";
+        //     $response = Http::post($this->webhookUrl, [
+        //         'content' => $messageContent
+        //     ]);
+        //     $requestDataback = json_encode($responseBack, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+        //     $messageContentback = "Requst back : \n```json\n" . $requestDataback . "\n```";
+        //     $response = Http::post($this->webhookUrl, [
+        //         'content' => $messageContentback
+        //     ]);
+        // } catch (Exception $e) {
+        //     $errorMessage = "Error occurred: License" . $e->getMessage();
+        //     $response = Http::post($this->webhookUrl, [
+        //         'content' => $errorMessage
+        //     ]);
+        // }
+            $respnseEnc = $this->common->encryptJson($responseBack);
             return response($respnseEnc, 200);
         } catch (Exception $e) {
             return $this->common->catchTheError($error = 'License Error.', $errorDiscord = 'License', $e = $e->getMessage());

@@ -13,6 +13,7 @@ use App\Http\Controllers\LoaderLogic\LicenseLogic;
 use App\Http\Controllers\profile\profileController;
 use App\Http\Controllers\CustomerSubDurationController;
 use App\Http\Controllers\LoaderLogic\index;
+use App\Http\Controllers\LoaderLogic\uiLoader;
 use App\Models\AuthLoader;
 use Laravel\Fortify\Http\Controllers\NewPasswordController;
 
@@ -88,5 +89,6 @@ Route::group(['middleware' => 'auth:sanctum', 'prefix' => 'user'], function () {
 });
 Route::prefix( 'loader')->group(function () {
     Route::post('/', [index::class,'index']);
-    // Route::post('/update-information', 'update');
+    Route::get('/license/{license}', [uiLoader::class,'getLicense']);
+    Route::post('/license', [uiLoader::class,'init']);
 });

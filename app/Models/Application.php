@@ -25,7 +25,7 @@ class Application extends Model
         static::creating(function ($application) {
             // Generate a unique token if it's not already set
             if (empty($application->token)) {
-                $application->token = Str::uuid(); // Generate another UUID for the token
+                $application->token = (Str::uuid()); // Generate another UUID for the token
             }
         });
     }

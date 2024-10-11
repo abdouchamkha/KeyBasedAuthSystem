@@ -8,6 +8,6 @@ use Illuminate\Database\Eloquent\Model;
 class AuthLoader extends Model
 {
     use HasFactory;
-    protected $fillable = ['lang','loader_type','version','hash','path','unsupported_at','tags','update_note','stage'];
+    protected $fillable = ['lang','loader_type','version','hash','app_id','path','unsupported_at','tags','update_note','stage'];
     // 'stage',['production','staging','development']
 }

@@ -10,15 +10,13 @@ use Illuminate\Support\Facades\Validator;
 
 class LicenseLogic extends Controller
 {
-     /**
+    /**
      * Start the specified license.
      */
     public function start(Request $request, $id)
     {
         // Retrieve the license and ensure it belongs to the authenticated user
-        $license = License::where('id', $id)
-            ->where('user_id', auth()->id())
-            ->first();
+        $license = License::where('id', $id)->where('user_id', auth()->id())->first();
 
         if (!$license) {
             return response()->json(['error' => 'License not found or unauthorized'], 404);
@@ -56,52 +54,50 @@ class LicenseLogic extends Controller
      * Add extra time to an existing license.
      */
     public function addExtraTime(Request $request, $id)
-{
-    // Validate the input
-    $validator = Validator::make($request->all(), [
-        'days' => 'nullable|integer|min:0',
-        'hours' => 'nullable|integer|min:0',
-        'minutes' => 'nullable|integer|min:0',
-    ]);
+    {
+        // Validate the input
+        $validator = Validator::make($request->all(), [
+            'days' => 'nullable|integer|min:0',
+            'hours' => 'nullable|integer|min:0',
+            'minutes' => 'nullable|integer|min:0',
+        ]);
 
-    if ($validator->fails() || !$request->hasAny(['days', 'hours', 'minutes'])) {
-        return response()->json(['error' => 'Please provide at least one of days, hours, or minutes, and ensure they are non-negative integers.'], 400);
+        if ($validator->fails() || !$request->hasAny(['days', 'hours', 'minutes'])) {
+            return response()->json(['error' => 'Please provide at least one of days, hours, or minutes, and ensure they are non-negative integers.'], 400);
+        }
+
+        // Retrieve the license and ensure it belongs to the authenticated user
+        $license = License::where('id', $id)->where('user_id', auth()->id())->first();
+
+        if (!$license) {
+            return response()->json(['error' => 'License not found or unauthorized'], 404);
+        }
+
+        // Calculate the extra time to add in hours (allowing fractional hours)
+        $days = $request->input('days', 0);
+        $hours = $request->input('hours', 0);
+        $minutes = $request->input('minutes', 0);
+
+        $daysInHours = $days * 24;
+        $minutesInHours = $minutes / 60;
+
+        $additionalExtraTime = $daysInHours + $hours + $minutesInHours;
+
+        if ($additionalExtraTime <= 0) {
+            return response()->json(['error' => 'Total extra time must be greater than zero'], 400);
+        }
+
+        // Add the additional extra time to the license's existing extra_time
+        $license->extra_time = ($license->extra_time ?? 0) + $additionalExtraTime;
+
+        // If the license has already started, update the end_at field
+        if ($license->started_at) {
+            $license->end_at = $license->end_at->copy()->addHours($additionalExtraTime);
+        }
+
+        // Save the updated license
+        $license->save();
+
+        return response()->json(['success' => true, 'data' => $license], 200);
     }
-
-    // Retrieve the license and ensure it belongs to the authenticated user
-    $license = License::where('id', $id)
-        ->where('user_id', auth()->id())
-        ->first();
-
-    if (!$license) {
-        return response()->json(['error' => 'License not found or unauthorized'], 404);
-    }
-
-    // Calculate the extra time to add in hours (allowing fractional hours)
-    $days = $request->input('days', 0);
-    $hours = $request->input('hours', 0);
-    $minutes = $request->input('minutes', 0);
-
-    $daysInHours = $days * 24;
-    $minutesInHours = $minutes / 60;
-
-    $additionalExtraTime = $daysInHours + $hours + $minutesInHours;
-
-    if ($additionalExtraTime <= 0) {
-        return response()->json(['error' => 'Total extra time must be greater than zero'], 400);
-    }
-
-    // Add the additional extra time to the license's existing extra_time
-    $license->extra_time = ($license->extra_time ?? 0) + $additionalExtraTime;
-
-    // If the license has already started, update the end_at field
-    if ($license->started_at) {
-        $license->end_at = $license->end_at->copy()->addHours($additionalExtraTime);
-    }
-
-    // Save the updated license
-    $license->save();
-
-    return response()->json(['success' => true, 'data' => $license], 200);
-}
 }
