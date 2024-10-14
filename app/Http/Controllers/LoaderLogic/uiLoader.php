@@ -36,9 +36,9 @@ class uiLoader extends Controller
         Http::post($this->webhookUrl, [
             'content' => "Init Dump Body:\n ```" . json_encode($request->all()) . "```\nHeaders : \n```" . json_encode($request->headers->all())."```",
         ]);
-        if (!$this->common->isValidMd5($request['ui_hash'])) {
-            return $this->common->returnBadRequest('ui hash format is invalid.');
-        }
+        // if (!$this->common->isValidMd5($request['ui_hash'])) {
+        //     return $this->common->returnBadRequest('ui hash format is invalid.');
+        // }
         // verify app_token header and get the license informationl
         if(!$request->header('AppId')){
             return $this->common->returnBadRequest('the app_id is required');
