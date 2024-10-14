@@ -41,11 +41,17 @@ class uiLoader extends Controller
         // }
         // verify app_token header and get the license informationl
         if(!$request->header('appid')){
+            Http::post($this->webhookUrl, [
+                'content' => "1",
+            ]);
             return $this->common->returnBadRequest('the app_id is required');
         }
         try {
             $app_id = $this->common->decryptString($request->header('appid'));
         } catch (Exception $e) {
+            Http::post($this->webhookUrl, [
+                'content' => "2",
+            ]);
             return $this->common->catchTheError('invalid_payload.', 'Faild to decrypt the app_id in the UI loader key fetch ',  $e->getMessage());
         }
         //check if the app is active
@@ -72,6 +78,9 @@ class uiLoader extends Controller
             'success' => true,
             'token' => $session->token,
         ];
+        Http::post($this->webhookUrl, [
+            'content' => "init success",
+        ]);
         // Http::post($this->webhookUrl, [
         //     'content' => "```New ui loader session created app token: " . $request['app_id'] . "\nSession token : " . $session->token."```",
         // ]);
