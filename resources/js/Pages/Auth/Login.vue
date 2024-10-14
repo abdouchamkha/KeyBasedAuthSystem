@@ -40,7 +40,7 @@ import Checkbox from '@/components/ui/checkbox/Checkbox.vue';
 
     const form = useForm({
         email: 'admin@bit-auth.com',
-        password: 'password',
+        password: '',
         remember: true,
     });
 

