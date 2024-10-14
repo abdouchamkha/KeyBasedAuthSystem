@@ -208,7 +208,7 @@ class index extends Controller
             }
             // Save session information
             $session->type = 'init';
-            $session->duration = 5;
+            $session->duration = 600;
             $session->ip = $ipAddress;
             $session->save();
 

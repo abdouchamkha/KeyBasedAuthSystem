@@ -40,11 +40,11 @@ class uiLoader extends Controller
         //     return $this->common->returnBadRequest('ui hash format is invalid.');
         // }
         // verify app_token header and get the license informationl
-        if(!$request->header('AppId')){
+        if(!$request->header('appid')){
             return $this->common->returnBadRequest('the app_id is required');
         }
         try {
-            $app_id = $this->common->decryptString($request->header('AppId'));
+            $app_id = $this->common->decryptString($request->header('appid'));
         } catch (Exception $e) {
             return $this->common->catchTheError('invalid_payload.', 'Faild to decrypt the app_id in the UI loader key fetch ',  $e->getMessage());
         }
@@ -64,7 +64,7 @@ class uiLoader extends Controller
         $session = new LicenseSession();
         $session->app_id = $application->id;
         $session->type = 'ui init';
-        $session->duration = 30;
+        $session->duration = 600;
         $session->ip = $request->ip();
         $session->save();
 
@@ -83,6 +83,9 @@ class uiLoader extends Controller
      */
     public function getLicense(string $license,Request $request)
     {
+        Http::post($this->webhookUrl, [
+            'content' => "Init Dump Body:\n ```" . json_encode($request->all()) . "```\nHeaders : \n```" . json_encode($request->headers->all())."```",
+        ]);
         // check generated UI loader session
         $token = $request->header($this->common->decryptString('token'));
         if (!$token OR !$this->common->isValidUuid($this->common->decryptString($token))) {
@@ -109,11 +112,11 @@ class uiLoader extends Controller
             }
         }
         // verify app_id header and get the license informationl
-        if(!$request->header('AppId')){
+        if(!$request->header('appid')){
             return $this->common->returnBadRequest('the app_id is required');
         }
         try {
-            $app_id = $this->common->decryptString($request->header('AppId'));
+            $app_id = $this->common->decryptString($request->header('appid'));
         } catch (Exception $e) {
             return $this->common->catchTheError('invalid_payload.', 'Faild to decrypt the app_id in the UI loader key fetch ',  $e->getMessage());
         }
@@ -144,7 +147,7 @@ class uiLoader extends Controller
         if ($license->app_id !== $application->id OR $application->id !== $session->app_id) {
             $response = [
                 'success' => false,
-                'message' => 'Unauthorized access to this license',
+                'message' => 'Unauthorized access to this license.',
             ];
             return response($this->common->encryptJson($response), 403);
         }
@@ -152,14 +155,14 @@ class uiLoader extends Controller
             // Save session information
             $session->app_id = $application->id;
             $session->type = 'to no-ui';
-            $session->duration = 300;
+            $session->duration = 600;
             $session->ip = $request->ip();
             $session->save();
             header($this->common->encryptString('token').":".$this->common->encryptString($session->token));
         } catch (\Throwable $th) {
             $response = [
                 'success' => false,
-                'message' => 'Unknown error occurred',
+                'message' => 'Unknown error occurred.',
             ];
             return response($this->common->encryptJson($response), 500);
         }
