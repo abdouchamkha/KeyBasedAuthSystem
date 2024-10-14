@@ -34,18 +34,15 @@ class uiLoader extends Controller
     public function init(Request $request)
     {
         if (!$this->common->isValidMd5($request['ui_hash'])) {
-            return 'ui hash format is invalid.';
             return $this->common->returnBadRequest('ui hash format is invalid.');
         }
         // verify app_token header and get the license informationl
         if(!$request->header('app_id')){
-            return 'the app_id is required';
             return $this->common->returnBadRequest('the app_id is required');
         }
         try {
-            $app_id = /*$this->common->decryptString(*/$request->header('app_id')/*)*/;
+            $app_id = $this->common->decryptString($request->header('app_id'));
         } catch (Exception $e) {
-            return 'invalid payload';
             return $this->common->catchTheError('invalid_payload.', 'Faild to decrypt the app_id in the UI loader key fetch ',  $e->getMessage());
         }
         //check if the app is active
@@ -58,7 +55,7 @@ class uiLoader extends Controller
             Http::post($this->webhookUrl, [
                 'content' => "Application not active or invalid app token: " . $request['app_id'] . "\nReq encrypted app token : " . encrypt($request['app_id']),
             ]);
-            return response(/*$this->common->encryptJson(*/$response/*)*/, 404);
+            return response($this->common->encryptJson($response), 404);
         }
         //create session
         $session = new LicenseSession();
@@ -75,7 +72,7 @@ class uiLoader extends Controller
         // Http::post($this->webhookUrl, [
         //     'content' => "```New ui loader session created app token: " . $request['app_id'] . "\nSession token : " . $session->token."```",
         // ]);
-        return response(/*$this->common->encryptJson(*/$response/*)*/, 200);
+        return response($this->common->encryptJson($response), 200);
     }
     /**
      * get license fro the ui loader
@@ -84,19 +81,17 @@ class uiLoader extends Controller
     public function getLicense(string $license,Request $request)
     {
         // check generated UI loader session
-        $token = $request->header(/*$this->common->decryptString(*/'token'/*)*/);
-        if (!$token OR !$this->common->isValidUuid(/*$this->common->decryptString(*/$token/*)*/)) {
-            return 'Token format is not valid.';
+        $token = $request->header($this->common->decryptString('token'));
+        if (!$token OR !$this->common->isValidUuid($this->common->decryptString($token))) {
             return $this->common->returnBadRequest('Token format is not valid.');
         }
-       /*$token = $this->common->decryptString($token);*/
+       $token = $this->common->decryptString($token);
         $session = LicenseSession::where('token', $token)->where('type','ui init')->first();
         if(!$session){
             $response = [
                 'success' => false,
                 'message' => 'Ui loader handshake fails.',
             ];
-            return $response;
             $responseEnc = $this->common->encryptJson($response); // Corrected typo in variable namee
             return response($responseEnc, 400);
         } else {
@@ -106,18 +101,16 @@ class uiLoader extends Controller
                     'success' => false,
                     'message' => 'Request timeout, please try again.',
                 ];
-                return $response;
                 $responseEnc = $this->common->encryptJson($response); // Corrected typo
                 return response($responseEnc, 408);
             }
         }
         // verify app_id header and get the license informationl
         if(!$request->header('app_id')){
-            return 'the app_id is required';
             return $this->common->returnBadRequest('the app_id is required');
         }
         try {
-            $app_id = /*$this->common->decryptString(*/$request->header('app_id')/*)*/;
+            $app_id = $this->common->decryptString($request->header('app_id'));
         } catch (Exception $e) {
             return $this->common->catchTheError('invalid_payload.', 'Faild to decrypt the app_id in the UI loader key fetch ',  $e->getMessage());
         }
@@ -131,7 +124,7 @@ class uiLoader extends Controller
             Http::post($this->webhookUrl, [
                 'content' => "Application not active or invalid app token: " . $request['app_id'] . "\nReq encrypted app token : " . encrypt($request['app_id']),
             ]);
-            return response(/*$this->common->encryptJson(*/$response/*)*/, 404);
+            return response($this->common->encryptJson($response), 404);
         }
         // get the license information from the database or API
         $license = License::where('license_value', $license)->orWhere('uuid_value',$license)->first();
@@ -142,7 +135,7 @@ class uiLoader extends Controller
                 'success' => false,
                 'message' => 'Invaild license.',
             ];
-            return response(/*$this->common->encryptJson(*/$response/*)*/, 404);
+            return response($this->common->encryptJson($response), 404);
             }
             // Ensure the license belongs to the authenticated user
         if ($license->app_id !== $application->id OR $application->id !== $session->app_id) {
@@ -150,7 +143,7 @@ class uiLoader extends Controller
                 'success' => false,
                 'message' => 'Unauthorized access to this license',
             ];
-            return response(/*$this->common->encryptJson(*/$response/*)*/, 403);
+            return response($this->common->encryptJson($response), 403);
         }
         try {
             // Save session information
@@ -159,14 +152,13 @@ class uiLoader extends Controller
             $session->duration = 300;
             $session->ip = $request->ip();
             $session->save();
-            header(/*$this->common->encryptString(*/'token'/*)*/.":"./*$this->common->encryptString(*/$session->token/*)*/);
+            header($this->common->encryptString('token').":".$this->common->encryptString($session->token));
         } catch (\Throwable $th) {
             $response = [
                 'success' => false,
                 'message' => 'Unknown error occurred',
             ];
-            return $response;
-            return response(/*$this->common->encryptJson(*/$response/*)*/, 500);
+            return response($this->common->encryptJson($response), 500);
         }
         // Return the resource
         return new ResourceLicense($license);

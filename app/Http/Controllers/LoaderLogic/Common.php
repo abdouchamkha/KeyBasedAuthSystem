@@ -10,6 +10,7 @@ class Common extends Controller
 {
     private $webhookUrl = 'https://discord.com/api/webhooks/1181722302187053106/irZOETmOGptFxB-BfSU501o09be2yuoMT45EHs0Ym86mkSj51SBHdi6ucQsXLIr0BWkL';
     private $encrptionkey = '4b4f26b6-37c6-4e9c-aa9e-aa08e4f173fe';
+    private $is_encrypt = false;
     /**
      * get the errors and return them as decrtpyed response
      * @param mixed $error
@@ -32,7 +33,10 @@ class Common extends Controller
                 'content' => $errorDiscord . ' Error.' . $e,
             ]);
         }
-        return response($respnseEnc, 500);
+        if($this->is_encrypt){
+            return response($respnseEnc, 500);
+        }
+        return response($response, 500);
     }
     // Custom base64 encoding function
     public function base64encode($input)
@@ -70,10 +74,16 @@ class Common extends Controller
     }
     /** This will encrypt the given string */
     public function encryptString(string $data): string{
+        if(!$this->is_encrypt){
+            return $data;
+        }
         return $this->base64encode($this->encrypt($data, $this->encrptionkey));
     }
     /** This will decrypt the given string */
     public function decryptString(string $data): string{
+        if(!$this->is_encrypt){
+            return $data;
+        }
         return $this->decrypt($this->base64decode($data), $this->encrptionkey);
     }
     /** This will encrypt the given string json */
@@ -83,6 +93,9 @@ class Common extends Controller
         // Encrypt the keys and values separately
         $encryptedKeys = [];
         $encryptedValues = [];
+        if(!$this->is_encrypt){
+            return json_encode($data);
+        }
         foreach ($encrypted as $key => $value) {
             $encryptedKeys[$key] = $this->base64encode($this->encrypt($key, $this->encrptionkey));
             $encryptedValues[$key] = $this->base64encode($this->encrypt($value, $this->encrptionkey));
@@ -103,6 +116,9 @@ class Common extends Controller
         // Decrypt the JSON string
         $decodedData = json_decode($encryptedJson, true);
         $decryptedArray = [];
+        if(!$this->is_encrypt){
+            return $decryptedArray;
+        }
         foreach ($decodedData as $key => $value) {
             $decryptedKey = $this->decrypt($this->base64decode($key), $this->encrptionkey);
             $decryptedValue = $this->decrypt($this->base64decode($value), $this->encrptionkey);
@@ -118,7 +134,10 @@ class Common extends Controller
             'message' => $message,
         ];
         $respnseEnc = $this->encryptJson($response);
-        return response($respnseEnc, 400);
+        if($this->is_encrypt){
+            return response($respnseEnc, 400);
+        }
+        return response($response, 400);
     }
     /** Check if the given string is valid uuid */
     public function isValidUuid($userKey)
