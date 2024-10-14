@@ -42,7 +42,7 @@ class index extends Controller
                     'message' => 'Invalid payload.',
                 ];
                 return $response;
-                $responseEnc = $this->common->encryptJson($response); // Corrected typo in variable name
+                $responseEnc = $this->common->encryptJson($response); // Corrected typo in variable namee
                 return response($responseEnc, 200);
             }
             $response = Http::post($this->webhookUrl, [

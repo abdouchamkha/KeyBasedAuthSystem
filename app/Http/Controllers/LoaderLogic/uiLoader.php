@@ -97,7 +97,7 @@ class uiLoader extends Controller
                 'message' => 'Ui loader handshake fails.',
             ];
             return $response;
-            $responseEnc = $this->common->encryptJson($response); // Corrected typo in variable name
+            $responseEnc = $this->common->encryptJson($response); // Corrected typo in variable namee
             return response($responseEnc, 400);
         } else {
             $sessionTimeout = Carbon::parse($session->created_at)->addSeconds($session->duration); // Corrected typo
