@@ -9,8 +9,25 @@ use Illuminate\Database\Eloquent\Model;
 class ProductDownload extends Model
 {
     use HasFactory;
-    protected $fillable = ['product_id','name', 'tags', 'path','type','file_extension'];
-    public function product_id(){
+    protected $fillable = [
+        'path',
+        'name',
+        'product_id',
+        'file_extension',
+        'labels',
+        'tags',
+    ];
+
+    protected $casts = [
+        'labels' => 'array',
+        'tags' => 'array',
+    ];
+       public function product_id(){
         return $this->hasOne(Product::class);
+    }
+    // New Many-to-Many Relationship
+    public function products()
+    {
+        return $this->belongsToMany(Product::class, 'file_product', 'product_download_id', 'product_id');
     }
 }

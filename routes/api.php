@@ -14,6 +14,7 @@ use App\Http\Controllers\profile\profileController;
 use App\Http\Controllers\CustomerSubDurationController;
 use App\Http\Controllers\LoaderLogic\index;
 use App\Http\Controllers\LoaderLogic\uiLoader;
+use App\Http\Controllers\ProductDownloadController;
 use App\Models\AuthLoader;
 use Laravel\Fortify\Http\Controllers\NewPasswordController;
 
@@ -73,6 +74,8 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::apiResource('customer/sub/duration', CustomerSubDurationController::class);
     Route::apiResource('product', ProductController::class);
     Route::get('/products', [ProductController::class, 'getProducts'])->name('products.getProducts');
+    Route::apiResource('file', ProductDownloadController::class);
+    Route::get('/file-download/{productDownload}', [ProductDownloadController::class, 'download'])->name('file.download');
     Route::apiResource('license', LicenseController::class);
     Route::get('start/{id}',[ LicenseLogic::class,'start']);
 });

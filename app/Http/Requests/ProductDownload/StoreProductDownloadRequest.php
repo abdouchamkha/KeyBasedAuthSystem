@@ -10,30 +10,29 @@ class StoreProductDownloadRequest extends FormRequest
     public function failedValidation(Validator $validator)
     {
         throw new HttpResponseException(response()->json([
-            'success'   => false,
-            'message'   => 'Validation errors',
-            'data'      => $validator->errors()
-        ],400));
-    }
-    /**
-     * Determine if the user is authorized to make this request.
-     */
-    public function authorize(): bool
-    {
-                return auth()->user()->selectedApp()->first()->owner_id == auth()->id();
+            'success' => false,
+            'message' => 'Validation errors',
+            'data' => $validator->errors()
+        ], 400));
     }
 
-    /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
-     */
+    public function authorize(): bool
+    {
+        return auth()->user()->selectedApp()->first()->owner_id == auth()->id();
+    }
+
     public function rules(): array
     {
         return [
-            'type' => 'required|string',
-            'file' => 'required|file|max:8192|mimes:exe,sys,dll',
-            'product_id' => 'required|integer|exists:products,id',
+            'files' => 'required|array|min:1',
+            // 'files.*' => 'required|file|max:8192|mimes:exe,sys,dll',  // Handle multiple files
+            'files.*' => 'required|file|max:8192',  // Handle multiple files
+
+            'tags' => 'nullable|array',
+            'tags.*' => 'nullable|string',  // Each file tag
+            'products' => 'required_without:all|array',
+            'products.*' => 'integer|exists:products,id',
+            'all' => 'boolean',
         ];
     }
 }

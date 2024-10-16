@@ -22,4 +22,9 @@ class Product extends Model
     {
         return $this->belongsTo(Application::class, 'app_id', 'id');
     }
+    // New Many-to-Many Relationship
+    public function files()
+    {
+        return $this->belongsToMany(ProductDownload::class, 'file_product', 'product_id', 'product_download_id');
+    }
 }
