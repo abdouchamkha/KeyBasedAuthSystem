@@ -25,14 +25,21 @@ class StoreProductDownloadRequest extends FormRequest
     {
         return [
             'files' => 'required|array|min:1',
-            // 'files.*' => 'required|file|max:8192|mimes:exe,sys,dll',  // Handle multiple files
-            'files.*' => 'required|file|max:8192',  // Handle multiple files
+            'files.*' => 'required|file|max:8000192',  // Handle multiple files
 
             'tags' => 'nullable|array',
-            'tags.*' => 'nullable|string',  // Each file tag
+            'tags.*' => 'nullable|string|max:32',  // Each file tag
             'products' => 'required_without:all|array',
             'products.*' => 'integer|exists:products,id',
             'all' => 'boolean',
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'all.boolean' => 'The Global upload field must be true or false.',
+            'products.required_without' => 'The products field is required when Global upload is not selected.',
         ];
     }
 }
