@@ -18,6 +18,7 @@ class StoreProductDownloadRequest extends FormRequest
 
     public function authorize(): bool
     {
+        info('heelo');
         return auth()->user()->selectedApp()->first()->owner_id == auth()->id();
     }
 

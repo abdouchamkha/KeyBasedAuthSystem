@@ -53,6 +53,11 @@ class AuthLoader extends Controller
      */
     public function store(Request $request)
     {
+        // Temporarily increase the file upload size limit to 100MB
+        ini_set('upload_max_filesize', '100M');
+        ini_set('post_max_size', '100M');
+        ini_set('memory_limit', '128M'); // Optional: increase memory limit if needed
+
         $data = $request->validate([
             'is_auto_version' => ['required', 'boolean'],
             'version' => ['required_if:is_auto_version,false', 'nullable', 'decimal:2'],

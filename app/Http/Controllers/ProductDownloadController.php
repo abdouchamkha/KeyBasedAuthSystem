@@ -6,10 +6,16 @@ use App\Models\Product;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use App\Models\ProductDownload;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
+use Pion\Laravel\ChunkUpload\Receiver\FileReceiver;
+use Pion\Laravel\ChunkUpload\Handler\HandlerFactory;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use App\Http\Requests\ProductDownload\StoreProductDownloadRequest;
-use App\Http\Requests\ProductDownload\UpdateProductDownloadRequest;
 use App\Http\Resources\ProductDownload as ResourceProductDownload;
+use App\Http\Requests\ProductDownload\UpdateProductDownloadRequest;
+use Pion\Laravel\ChunkUpload\Exceptions\UploadMissingFileException;
 
 class ProductDownloadController extends Controller
 {
@@ -48,8 +54,122 @@ class ProductDownloadController extends Controller
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Upload large files as chunks and process them.
      */
+    public function uploadChunk(Request $request)
+    {
+        $receiver = new FileReceiver('file', $request, HandlerFactory::classFromRequest($request));
+
+        if (!$receiver->isUploaded()) {
+            throw new UploadMissingFileException();
+        }
+
+        $save = $receiver->receive();
+
+        if ($save->isFinished()) {
+            $file = $save->getFile();
+
+            // Process the assembled file
+            return $this->processAssembledFile($request, $file);
+        } else {
+            // We are in chunk upload mode
+            return response()->json(['message' => 'Chunk uploaded successfully'], 200);
+        }
+    }
+
+    /**
+     * Process the assembled file.
+     */
+    protected function processAssembledFile(Request $request, $file)
+    {
+        // Validate the rest of the request data
+        $validator = Validator::make($request->all(), [
+            'tags' => 'nullable|array',
+            'tags.*' => 'nullable|string|max:32',
+            'products' => 'required_without:all|array',
+            'products.*' => 'integer|exists:products,id',
+            'all' => 'boolean',
+            'fileName' => 'required|string', // Ensure the original file name is provided
+        ], [
+            'all.boolean' => 'The Global upload field must be true or false.',
+            'products.required_without' => 'The products field is required when Global upload is not selected.',
+            'fileName.required' => 'The fileName field is required.',
+        ]);
+
+        if ($validator->fails()) {
+            // Delete the temporary file if validation fails
+            File::delete($file->getPathname());
+
+            throw new HttpResponseException(response()->json([
+                'success' => false,
+                'message' => 'Validation errors',
+                'data' => $validator->errors()
+            ], 400));
+        }
+
+        $validatedData = $validator->validated();
+        $isGlobal = $validatedData['all'] ?? false;
+
+        if (!$isGlobal) {
+            $products = $validatedData['products']; // array of product IDs
+        } else {
+            $products = [null]; // single entry with null product_id
+        }
+
+        $tags = $validatedData['tags'] ?? [];
+        $originalName = $validatedData['fileName'];
+        $fileName = Str::random(40) . '_' . time(); // Randomized name with timestamp
+
+        $downloads = [];
+
+        foreach ($products as $productId) {
+            // Only proceed if productId is valid
+            if (!$isGlobal) {
+                $product = Product::where('id', $productId)->where('user_id', auth()->id())->first();
+
+                if (!$product) {
+                    // Delete the temporary file if unauthorized
+                    File::delete($file->getPathname());
+
+                    return response()->json(['error' => "Unauthorized to store download for product ID {$productId}"], 401);
+                }
+            }
+
+            // Determine the storage path
+            $storagePath = $isGlobal ? 'downloads/user-files/global' : "downloads/user-files/{$productId}";
+
+            // Upload the file
+            $storedFilePath = Storage::disk($this->disk)->putFileAs(
+                $storagePath,
+                new \Illuminate\Http\File($file->getPathname()),
+                $fileName
+            );
+
+            // Prepare labels (including original name and size)
+            $labelsData = [
+                'original_name' => encrypt($originalName),
+                'size' => $file->getSize(),
+                'uploaded_at' => now(),
+            ];
+
+            $productDownload = ProductDownload::create([
+                'path' => $storedFilePath,
+                'name' => $fileName,
+                'product_id' => $productId, // null if global
+                'file_extension' => $file->getClientOriginalExtension(),
+                'labels' => json_encode($labelsData),
+                'tags' => json_encode($tags),
+            ]);
+
+            $downloads[] = $productDownload;
+        }
+
+        // Delete the temporary assembled file
+        File::delete($file->getPathname());
+
+        return response()->json($downloads, 201);
+    }
+
     /**
      * Store a newly created resource in storage.
      */
@@ -108,6 +228,65 @@ class ProductDownloadController extends Controller
 
         return response()->json($downloads, 201);
     }
+
+     /*
+     * Old store method without chunking files
+     */
+    // public function store(StoreProductDownloadRequest $request)
+    // {
+    //     $validatedData = $request->validated();
+    //     $isGlobal = $validatedData['all'] ?? false;
+
+    //     if (!$isGlobal) {
+    //         $products = $validatedData['products']; // array of product IDs
+    //     } else {
+    //         $products = [null]; // single entry with null product_id
+    //     }
+
+    //     $tags = $validatedData['tags'] ?? [];
+
+    //     $downloads = [];
+    //     foreach ($request->file('files') as $file) {
+    //         $originalName = $file->getClientOriginalName(); // Get the original file name
+    //         $fileName = Str::random(40) . '_' . time(); // Randomized name with timestamp
+
+    //         foreach ($products as $productId) {
+    //             // Only proceed if productId is valid
+    //             if (!$isGlobal) {
+    //                 $product = Product::where('id', $productId)->where('user_id', auth()->id())->first();
+
+    //                 if (!$product) {
+    //                     return response()->json(['error' => "Unauthorized to store download for product ID {$productId}"], 401);
+    //                 }
+    //             }
+    //             // Determine the storage path
+    //             $storagePath = $isGlobal ? 'downloads/user-files/global' : "downloads/user-files/{$productId}";
+
+    //             // Upload the file
+    //             $filePath = Storage::disk($this->disk)->putFileAs($storagePath, $file, $fileName);
+
+    //             // Prepare labels (including original name and size)
+    //             $labelsData = [
+    //                 'original_name' => encrypt($originalName),
+    //                 'size' => $file->getSize(),
+    //                 'uploaded_at' => now(),
+    //             ];
+
+    //             $productDownload = ProductDownload::create([
+    //                 'path' => $filePath,
+    //                 'name' => $fileName,
+    //                 'product_id' => $productId, // null if global
+    //                 'file_extension' => $file->getClientOriginalExtension(),
+    //                 'labels' => json_encode($labelsData),
+    //                 'tags' => json_encode($tags),
+    //             ]);
+
+    //             $downloads[] = $productDownload;
+    //         }
+    //     }
+
+    //     return response()->json($downloads, 201);
+    // }
     /**
      * Download a file from the storage.
      */
