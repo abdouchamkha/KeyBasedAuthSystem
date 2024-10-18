@@ -29,7 +29,7 @@ class AuthLoader extends Controller
             $query->orderBy($request->sort, $request->direction);
         }
 
-        $loaders = $query->paginate(10)->withQueryString();
+        $loaders = $query->latest()->paginate(20)->withQueryString();
         // return response()->json([
         //     'loaders' => $loaders,
         //     'filters' => $request->only(['search', 'sort', 'direction']),
