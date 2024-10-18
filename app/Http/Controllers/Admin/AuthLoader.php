@@ -65,7 +65,7 @@ class AuthLoader extends Controller
             'updateNote' => ['nullable', 'array'],
             'loader_type' => ['required', 'string'],
             'stage' => ['required', 'string', 'in:production,staging,development'],
-            'file' => ['required', 'file'],
+            'file' => ['required'],
         ]);
 
         $authloader = AuthLoaderModel::where('lang', $data['lang'])
