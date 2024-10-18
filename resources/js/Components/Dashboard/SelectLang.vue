@@ -8,7 +8,6 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { defineProps } from 'vue';
 
 // Define the props to accept an array of options and a label
 const props = defineProps({

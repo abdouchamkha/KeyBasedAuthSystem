@@ -49,10 +49,13 @@ const openCreateLoader = () => {
 };
 
 const storeLoader = () => {
-    form.post(route('loader-updates.store'), { // Updated the route here
+    form.post(route('loader-updates.store'), {
         preserveScroll: true,
+        forceFormData: true,  // Force FormData for file handling
         onSuccess: () => closeModal(),
-        onFinish: () => form.reset(),
+        onError: (errors) => {
+            console.error("Upload errors:", errors);
+        }
     });
 };
 
@@ -129,6 +132,7 @@ const Stages = [
                             <div class="mt-6">
                                 <Label for="file">Upload file:</Label>
                                 <Input id="file" type="file" @keyup.enter="storeLoader"  @input="form.file = $event.target.files[0]" placeholder="UploadFile"  />
+                                
                                 <Progress v-if="form.progress" :value="form.progress.percentage" max="100" class="w-3/5 mt-2 bg-green-500" />
                                 <InputError :message="form.errors.file" class="mt-2" />
                             </div>
