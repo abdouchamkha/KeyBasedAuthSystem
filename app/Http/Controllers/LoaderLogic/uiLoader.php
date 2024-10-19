@@ -196,14 +196,13 @@ class uiLoader extends Controller
         if (!$loader) {
             return response()->json(['error' => 'Loader not found'], 404); // Return a 404 error response
         }
-
-        if (!Storage::exists($loader->path)) {
+        try {
+            $temporaryUrl = Storage::temporaryUrl(
+                $loader->path, now()->addSeconds(30)
+            );
+        } catch (Exception $e) {
             return response()->json(['error' => 'Loader file not found'], 404); // Return a 404 error response
         }
-
-        $temporaryUrl = Storage::temporaryUrl(
-            $loader->path, now()->addSeconds(30)
-        );
 
         return response()->json(['url' => $temporaryUrl]);
     }

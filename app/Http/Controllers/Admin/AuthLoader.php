@@ -52,11 +52,22 @@ class AuthLoader extends Controller
      */
     public function store(Request $request)
     {
+        if ($request->hasFile('file')) {
+            info("File is present");
+            info($request->file('file')->getClientOriginalName());
+        } else {
+            info("No file in the request");
+        }
+
+        info($request->file('file')->getClientOriginalName());
+
         // Temporarily increase the file upload size limit to 100MB
         ini_set('upload_max_filesize', '100M');
         ini_set('post_max_size', '100M');
         ini_set('memory_limit', '128M'); // Optional: increase memory limit if needed
 
+        info($request->file('file')->getClientOriginalName());
+        dd($request->file('file'));
         $data = $request->validate([
             'is_auto_version' => ['required', 'boolean'],
             'version' => ['required_if:is_auto_version,false', 'nullable', 'decimal:2'],
@@ -64,15 +75,14 @@ class AuthLoader extends Controller
             'updateNote' => ['nullable', 'array'],
             'loader_type' => ['required', 'string'],
             'stage' => ['required', 'string', 'in:production,staging,development'],
-            'file' => ['required', 'file'],
+            'file' => ['somitmes','file'],
         ]);
-
+        info($request->file('file')->getClientOriginalName());
         $authloader = AuthLoaderModel::where('lang', $data['lang'])
             ->where('loader_type', $data['loader_type'])
             ->orderByDesc('version')
             ->first();
 
-        // Check if the new version is greater than the previous version
         if (!$data['is_auto_version'] && $authloader && $data['version'] <= $authloader->version) {
             return redirect()
                 ->back()

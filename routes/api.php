@@ -66,11 +66,11 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     // New Chunked Upload Endpoint
     Route::post('/file/chunk', [ProductDownloadController::class, 'uploadChunk'])->name('file.uploadChunk');
 
+    Route::get('/file-download/{productDownload}', [ProductDownloadController::class, 'download'])->name('file.download');
     // License Routes
     Route::apiResource('license', LicenseController::class);
     Route::get('start/{id}', [LicenseLogic::class, 'start']);
 });
-Route::get('/file-download/{productDownload}', [ProductDownloadController::class, 'download'])->name('file.download');
 
 // User Profile Routes
 Route::group(['middleware' => 'auth:sanctum', 'prefix' => 'user'], function () {
