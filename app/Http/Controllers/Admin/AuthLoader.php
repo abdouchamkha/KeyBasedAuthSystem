@@ -39,7 +39,6 @@ class AuthLoader extends Controller
             'filters' => $request->only(['search', 'sort', 'direction']),
         ]);
     }
-
     /**
      * Show the form for creating a new resource.
      */
@@ -53,21 +52,11 @@ class AuthLoader extends Controller
      */
     public function store(Request $request)
     {
-        if ($request->hasFile('file')) {
-            info("File is present");
-            info($request->file('file')->getClientOriginalName());
-        } else {
-            info("No file in the request");
-        }
-
-        info($request->file('file')->getClientOriginalName());
-
         // Temporarily increase the file upload size limit to 100MB
         ini_set('upload_max_filesize', '100M');
         ini_set('post_max_size', '100M');
         ini_set('memory_limit', '128M'); // Optional: increase memory limit if needed
 
-        info($request->file('file')->getClientOriginalName());
         $data = $request->validate([
             'is_auto_version' => ['required', 'boolean'],
             'version' => ['required_if:is_auto_version,false', 'nullable', 'decimal:2'],
@@ -75,14 +64,15 @@ class AuthLoader extends Controller
             'updateNote' => ['nullable', 'array'],
             'loader_type' => ['required', 'string'],
             'stage' => ['required', 'string', 'in:production,staging,development'],
-            'file' => ['required'],
+            'file' => ['required', 'file'],
         ]);
-        info($request->file('file')->getClientOriginalName());
+
         $authloader = AuthLoaderModel::where('lang', $data['lang'])
             ->where('loader_type', $data['loader_type'])
             ->orderByDesc('version')
             ->first();
 
+        // Check if the new version is greater than the previous version
         if (!$data['is_auto_version'] && $authloader && $data['version'] <= $authloader->version) {
             return redirect()
                 ->back()
@@ -123,6 +113,7 @@ class AuthLoader extends Controller
         return redirect()->back()->with('created', $creation);
     }
 
+
     /**
      * Display the specified resource.
      */
@@ -146,10 +137,10 @@ class AuthLoader extends Controller
     {
         // Validate the request
         $data = $request->validate([
-            'updateNote' => [ 'array'],
-            'stage' => [ 'nullable','string', 'in:production,staging,development'],
+            'updateNote' => ['array'],
+            'stage' => ['nullable', 'string', 'in:production,staging,development'],
             // 'file' => [ 'nullable','file'],
-            'unsupported_at' => ['nullable'],  // We'll handle the validation in code
+            'unsupported_at' => ['nullable'], // We'll handle the validation in code
         ]);
 
         // Retrieve the existing record
@@ -179,20 +170,22 @@ class AuthLoader extends Controller
             if (isset($unsupportedAt['year'], $unsupportedAt['month'], $unsupportedAt['day'])) {
                 try {
                     // Create a Carbon instance from the parsed values
-                    $unsupportedAtDate = Carbon::createFromDate(
-                        $unsupportedAt['year'],
-                        $unsupportedAt['month'],
-                        $unsupportedAt['day']
-                    )->format('Y-m-d H:i:s');
+                    $unsupportedAtDate = Carbon::createFromDate($unsupportedAt['year'], $unsupportedAt['month'], $unsupportedAt['day'])->format('Y-m-d H:i:s');
 
                     // Assign the formatted date to the data array
                     $data['unsupported_at'] = $unsupportedAtDate;
                 } catch (Exception $e) {
                     // Handle any exception (invalid date, etc.)
-                    return redirect()->back()->withErrors(['unsupported_at' => 'Invalid date format provided.'])->withInput();
+                    return redirect()
+                        ->back()
+                        ->withErrors(['unsupported_at' => 'Invalid date format provided.'])
+                        ->withInput();
                 }
             } else {
-                return redirect()->back()->withErrors(['unsupported_at' => 'Date must include year, month, and day.'])->withInput();
+                return redirect()
+                    ->back()
+                    ->withErrors(['unsupported_at' => 'Date must include year, month, and day.'])
+                    ->withInput();
             }
         }
 
@@ -231,7 +224,6 @@ class AuthLoader extends Controller
 
         return redirect()->back()->with('updated', 'Loader updated successfully');
     }
-
 
     /**
      * Remove the specified resource from storage.

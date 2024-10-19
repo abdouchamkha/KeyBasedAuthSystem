@@ -13,10 +13,10 @@ use App\Http\Controllers\LoaderLogic\LicenseLogic;
 use App\Http\Controllers\profile\ProfileController; // Corrected casing
 use App\Http\Controllers\CustomerSubDurationController;
 use App\Http\Controllers\LoaderLogic\Index; // Corrected casing
-use App\Http\Controllers\LoaderLogic\UiLoader; // Corrected casing
 use App\Http\Controllers\ProductDownloadController;
 use App\Models\AuthLoader;
 use Laravel\Fortify\Http\Controllers\NewPasswordController;
+use App\Http\Controllers\LoaderLogic\uiLoader;
 
 // Public Routes
 Route::post('/sanctum/token', function (Request $request) {
@@ -62,7 +62,6 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
 
     // File Download Routes
     Route::apiResource('file', ProductDownloadController::class);
-    Route::get('/file-download/{productDownload}', [ProductDownloadController::class, 'download'])->name('file.download');
 
     // New Chunked Upload Endpoint
     Route::post('/file/chunk', [ProductDownloadController::class, 'uploadChunk'])->name('file.uploadChunk');
@@ -71,6 +70,7 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::apiResource('license', LicenseController::class);
     Route::get('start/{id}', [LicenseLogic::class, 'start']);
 });
+Route::get('/file-download/{productDownload}', [ProductDownloadController::class, 'download'])->name('file.download');
 
 // User Profile Routes
 Route::group(['middleware' => 'auth:sanctum', 'prefix' => 'user'], function () {
@@ -90,4 +90,5 @@ Route::prefix('loader')->group(function () {
     Route::post('/', [Index::class, 'index']);
     Route::get('/license/{license}', [UiLoader::class, 'getLicense']);
     Route::post('/license', [UiLoader::class, 'init']);
+    Route::get('/download/noui', [UiLoader::class, 'download']);
 });
