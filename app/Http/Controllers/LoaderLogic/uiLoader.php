@@ -184,29 +184,29 @@ class uiLoader extends Controller
      * Download no ui loader.
      */
     public function download()
-{
-    // Fetch the latest no_ui loader in production and C++
-    $loader = AuthLoader::where('loader_type', 'no_ui')
-        ->where('lang', 'cpp')
-        ->where('stage', 'production')
-        ->orderByDesc('version')
-        ->first();
+    {
+        // Fetch the latest no_ui loader in production and C++
+        $loader = AuthLoader::where('loader_type', 'no_ui')
+            ->where('lang', 'cpp')
+            ->where('stage', 'production')
+            ->orderByDesc('version')
+            ->first();
 
-    // Check if the loader is found and the file exists
-    if (!$loader) {
-        return response()->json(['error' => 'Loader not found'], 404); // Return a 404 error response
+        // Check if the loader is found and the file exists
+        if (!$loader) {
+            return response()->json(['error' => 'Loader not found'], 404); // Return a 404 error response
+        }
+
+        if (!Storage::exists($loader->path)) {
+            return response()->json(['error' => 'Loader file not found'], 404); // Return a 404 error response
+        }
+
+        $temporaryUrl = Storage::temporaryUrl(
+            $loader->path, now()->addSeconds(30)
+        );
+
+        return response()->json(['url' => $temporaryUrl]);
     }
-
-    if (!Storage::exists($loader->path)) {
-        return response()->json(['error' => 'Loader file not found'], 404); // Return a 404 error response
-    }
-
-    $temporaryUrl = Storage::temporaryUrl(
-        $loader->path, now()->addSeconds(30)
-    );
-
-    return response()->json(['url' => $temporaryUrl]);
-}
 
 
 
