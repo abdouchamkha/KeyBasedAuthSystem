@@ -185,41 +185,41 @@ class uiLoader extends Controller
      * Download no ui loader.
      */
     public function download()
-{
-    // Fetch the latest no_ui loader in production and C++
-    $loader = AuthLoader::where('loader_type', 'no_ui')
-        ->where('lang', 'cpp')
-        ->where('stage', 'production')
-        ->orderByDesc('version')
-        ->first();
-
-    // Check if the loader is found and the file exists
-    if (!$loader) {
-        return response()->json(['error' => 'Loader not found'], 404); // Return a 404 error response
+    {
+        // Fetch the latest no_ui loader in production and C++
+        $loader = AuthLoader::where('loader_type', 'no_ui')
+            ->where('lang', 'cpp')
+            ->where('stage', 'production')
+            ->orderByDesc('version')
+            ->first();
+    
+        // Check if the loader is found
+        if (!$loader) {
+            return response()->json(['error' => 'Loader not found'], 404);
+        }
+    
+        // Check if the file exists in the storage (use the 'public' disk)
+        if (!Storage::disk('public')->exists($loader->path)) {
+            return response()->json(['error' => 'Loader file not found'], 404);
+        }
+    
+        try {
+            // Stream the file as a download
+            return new StreamedResponse(function () use ($loader) {
+                $stream = Storage::disk('public')->readStream($loader->path);
+                if ($stream === false) {
+                    throw new Exception('Could not open file for reading.');
+                }
+                fpassthru($stream);
+                fclose($stream);
+            }, 200, [
+                'Content-Type' => Storage::disk('public')->mimeType($loader->path),
+                'Content-Disposition' => 'attachment; filename="' . basename($loader->path) . '"',
+            ]);
+        } catch (Exception $e) {
+            return response()->json(['error' => 'Could not stream file'], 500);
+        }
     }
-
-    // Check if the file exists in the storage
-    if (!Storage::exists($loader->path)) {
-        return response()->json(['error' => 'Loader file not found'], 404); // Return a 404 error response
-    }
-
-    try {
-        // Stream the file as a download
-        return new StreamedResponse(function () use ($loader) {
-            $stream = Storage::readStream($loader->path);
-            if ($stream === false) {
-                throw new Exception('Could not open file for reading.');
-            }
-            fpassthru($stream);
-            fclose($stream);
-        }, 200, [
-            'Content-Type' => Storage::mimeType($loader->path),
-            'Content-Disposition' => 'attachment; filename="' . basename($loader->path) . '"',
-        ]);
-    } catch (Exception $e) {
-        return response()->json(['error' => 'Could not stream file'], 500); // Return a 500 error response
-    }
-}
 
 
 
