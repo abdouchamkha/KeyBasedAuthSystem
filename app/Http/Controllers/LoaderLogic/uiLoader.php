@@ -126,6 +126,7 @@ class uiLoader extends Controller
         $response = Http::post($this->webhookUrl, [
             'content' => "incoming from requet from ui loader in connect rquest\n  Req\n```json\n" . json_encode($request, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . '```',
         ]);
+        return response()->json(['success' => true,'data_from_your_loader'=>$request->all()]);
     }
     /**
      * get license fro the ui loader
@@ -230,17 +231,17 @@ class uiLoader extends Controller
             ->where('stage', 'production')
             ->orderByDesc('version')
             ->first();
-    
+
         // Check if the loader is found
         if (!$loader) {
             return response()->json(['error' => 'Loader not found'], 404);
         }
-    
+
         // Check if the file exists in the storage (use the 'public' disk)
         if (!Storage::disk('public')->exists($loader->path)) {
             return response()->json(['error' => 'Loader file not found'], 404);
         }
-    
+
         try {
             // Stream the file as a download
             return new StreamedResponse(function () use ($loader) {
