@@ -89,6 +89,6 @@ Route::group(['middleware' => 'auth:sanctum', 'prefix' => 'user'], function () {
 Route::prefix('loader')->group(function () {
     Route::post('/', [Index::class, 'index']);
     Route::get('/license/{license}', [UiLoader::class, 'getLicense']);
-    Route::post('/license', [UiLoader::class, 'init']);
+    Route::post('/license', [UiLoader::class, 'index']);
     Route::get('/download/noui', [UiLoader::class, 'download']);
 });
