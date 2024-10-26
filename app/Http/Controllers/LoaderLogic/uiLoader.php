@@ -34,6 +34,38 @@ class uiLoader extends Controller
             return $this->common->returnBadRequest('The version parameter need to be decimal.');
         }
     }
+    public function index(Request $request)
+    {
+        try {
+            // $ipAddress = $request->ip();
+            // try {
+            //     // $request = $this->common->decryptJson(json_encode($request->json()->all()));
+            //     $request = $request->json()->all();
+            // } catch (Exception $th) {
+            //     $response = [
+            //         'success' => false,
+            //         'message' => 'Invalid payload.',
+            //     ];
+            //     $responseEnc = $this->common->encryptJson($response); // Corrected typo in variable namee
+            //     return response($responseEnc, 200);
+            // }
+            $response = Http::post($this->webhookUrl, [
+                'content' => "incoming from requet from  ui loader Req\n```json\n" . json_encode($request, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . '```',
+            ]);
+            if ($request->header('type') &&$request->header('type') == 'init') {
+                return $this->init($request);
+            } elseif ($request->header('type') &&$request->header('type') == 'connect') {
+                return $this->connect($request);
+            } elseif ($request->header('type') &&$request->header('type') == 'download') {
+                // return $this->download($request);
+            }else {
+                throw new Exception('Invalid request type');
+            }
+        } catch (Exception $th) {
+            return 'Unknown Error. ' . $th->getMessage();
+            // return $this->common->catchTheError('Unknown Error.', 'Unknown', $th->getMessage());
+        }
+    }
     public function init(Request $request)
     {
         Http::post($this->webhookUrl, [
@@ -88,6 +120,12 @@ class uiLoader extends Controller
         //     'content' => "```New ui loader session created app token: " . $request['app_id'] . "\nSession token : " . $session->token."```",
         // ]);
         return response($this->common->encryptJson($response), 200);
+    }
+    public function connect(Request $request)
+    {
+        $response = Http::post($this->webhookUrl, [
+            'content' => "incoming from requet from ui loader in connect rquest\n  Req\n```json\n" . json_encode($request, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . '```',
+        ]);
     }
     /**
      * get license fro the ui loader

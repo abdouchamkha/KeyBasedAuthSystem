@@ -41,7 +41,6 @@ class index extends Controller
                     'success' => false,
                     'message' => 'Invalid payload.',
                 ];
-                return $response;
                 $responseEnc = $this->common->encryptJson($response); // Corrected typo in variable namee
                 return response($responseEnc, 200);
             }
@@ -62,7 +61,6 @@ class index extends Controller
                 throw new Exception('Invalid request type');
             }
         } catch (Exception $th) {
-            return 'Unknown Error. ' . $th->getMessage();
             return $this->common->catchTheError('Unknown Error.', 'Unknown', $th->getMessage());
         }
     }

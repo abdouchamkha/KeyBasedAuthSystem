@@ -16,18 +16,42 @@ class ProductDownload extends Model
         'file_extension',
         'labels',
         'tags',
+        'deleted_by',
+        'deleted_at',
+        'updated_by',
+        'created_by',
+        'app_id',
     ];
 
     protected $casts = [
         'labels' => 'array',
         'tags' => 'array',
     ];
-       public function product_id(){
-        return $this->hasOne(Product::class);
-    }
-    // New Many-to-Many Relationship
-    public function products()
-    {
-        return $this->belongsToMany(Product::class, 'file_product', 'product_download_id', 'product_id');
-    }
+     // Relationship for the user who uploaded the file, fetching only the 'name'
+     public function uploadedBy()
+     {
+         return $this->hasOne(User::class, 'id', 'created_by')->select(['id', 'name']);
+     }
+
+     // Relationship for the user who last updated the file, fetching only the 'name'
+     public function updatedBy()
+     {
+         return $this->hasOne(User::class, 'id', 'updated_by')->select(['id', 'name']);
+     }
+
+     // Relationship for the user who deleted the file, fetching only the 'name'
+     public function deletedBy()
+     {
+         return $this->hasOne(User::class, 'id', 'deleted_by')->select(['id', 'name']);
+     }
+     // Relationship for the user who deleted the file, fetching only the 'name'
+     public function createdBy()
+     {
+         return $this->hasOne(User::class, 'id', 'created_by')->select(['id', 'name']);
+     }
+     // Many-to-Many Relationship with Products
+     public function products()
+     {
+         return $this->belongsToMany(Product::class, 'file_product', 'product_download_id', 'product_id');
+     }
 }
