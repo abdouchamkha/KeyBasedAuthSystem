@@ -93,11 +93,11 @@ class uiLoader extends Controller
         $application= Application::where('token',($app_id))->where('status',ActiveType::ACTIVE)->first();
         if(!$application){
             $response = [
-                'success' => false,
-                'message' => 'Application not active or invalid.',
+            'success' => false,
+            'message' => 'Application not active or invalid.',
             ];
             Http::post($this->webhookUrl, [
-                'content' => "Application not active or invalid app token: " . $request['app_id'] . "\nReq encrypted app token : " . encrypt($request['app_id']),
+            'content' => "Application not active or invalid app token: " . $request['app_id'] . "\nReq encrypted app token : " . encrypt($request['app_id']),
             ]);
             return response($this->common->encryptJson($response), 404);
         }

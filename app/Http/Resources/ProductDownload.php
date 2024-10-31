@@ -20,6 +20,7 @@ class ProductDownload extends JsonResource
             'name'=>decrypt($this->labels['original_name']),
             'size'=>$this->getHumanReadableSize($this->labels['size']),
             'file_extension'=>$this->file_extension,
+            'tags'=>$this->tags,
             'uploaded_at'=>$this->created_at?->format('Y-m-d H:i'),
             'uploaded_by'=>$this->whenLoaded('uploadedBy'),
             'created_by'=>$this->whenLoaded('createdBy'),

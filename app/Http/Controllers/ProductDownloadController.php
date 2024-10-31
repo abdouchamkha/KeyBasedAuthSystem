@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Validator;
 use App\Http\Resources\ProductDownload as ResourceProductDownload;
 use App\Http\Requests\ProductDownload\StoreProductDownloadRequest;
 use App\Http\Requests\ProductDownload\UpdateProductDownloadRequest;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class ProductDownloadController extends Controller
 {
