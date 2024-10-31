@@ -6,16 +6,22 @@ use Exception;
 use Carbon\Carbon;
 use App\ActiveType;
 use App\Models\License;
+use App\Models\LoaderLog;
 use App\Models\AuthLoader;
 use App\Models\Application;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use App\Models\LicenseSession;
+use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\RateLimiter;
 use App\Http\Resources\License as ResourceLicense;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Illuminate\Http\Exceptions\ThrottleRequestsException;
 
 class uiLoader extends Controller
 {
@@ -30,7 +36,7 @@ class uiLoader extends Controller
     public function getUiLoaderVersion(Request $request)
     {
         // check app_id from the headers and get the version of the loader in the app
-        if(!$request['version']OR!is_double( $request['version'])){
+        if (!$request['version'] or !is_double($request['version'])) {
             return $this->common->returnBadRequest('The version parameter need to be decimal.');
         }
     }
@@ -49,16 +55,20 @@ class uiLoader extends Controller
             //     $responseEnc = $this->common->encryptJson($response); // Corrected typo in variable namee
             //     return response($responseEnc, 200);
             // }
-            $response = Http::post($this->webhookUrl, [
-                'content' => "incoming from requet from  ui loader Req\n```json\n" . json_encode($request, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . '```',
-            ]);
-            if ($request->header('type') &&$request->header('type') == 'init') {
+            // $response = Http::post($this->webhookUrl, [
+            //     'content' => "incoming from requet from  ui loader Req\n```json\n" . json_encode($request, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . '```',
+            // ]);
+            if ($request->header('type') && $request->header('type') == 'init') {
                 return $this->init($request);
-            } elseif ($request->header('type') &&$request->header('type') == 'connect') {
+            } elseif ($request->header('type') && $request->header('type') == 'connect') {
                 return $this->connect($request);
-            } elseif ($request->header('type') &&$request->header('type') == 'download') {
+            } elseif ($request->header('type') && $request->header('type') == 'download') {
                 // return $this->download($request);
-            }else {
+            } elseif ($request->header('type') && $request->header('type') == 'connect_store') {
+                return $this->connectStore($request);
+            } elseif ($request->header('type') && $request->header('type') == 'connect_retrieve') {
+                return $this->connectRetrieve($request);
+            } else {
                 throw new Exception('Invalid request type');
             }
         } catch (Exception $th) {
@@ -69,39 +79,41 @@ class uiLoader extends Controller
     public function init(Request $request)
     {
         Http::post($this->webhookUrl, [
-            'content' => "Init Dump Body:\n ```" . json_encode($request->all()) . "```\nHeaders : \n```" . json_encode($request->headers->all())."```",
+            'content' => "Init Dump Body:\n ```" . json_encode($request->all()) . "```\nHeaders : \n```" . json_encode($request->headers->all()) . "```",
         ]);
-        // if (!$this->common->isValidMd5($request['ui_hash'])) {
-        //     return $this->common->returnBadRequest('ui hash format is invalid.');
-        // }
-        // verify app_token header and get the license informationl
-        if(!$request->header('appid')){
-            Http::post($this->webhookUrl, [
-                'content' => "1",
-            ]);
+
+        if (!$request->header('appid')) {
             return $this->common->returnBadRequest('the app_id is required');
         }
+
         try {
             $app_id = $this->common->decryptString($request->header('appid'));
         } catch (Exception $e) {
-            Http::post($this->webhookUrl, [
-                'content' => "2",
-            ]);
-            return $this->common->catchTheError('invalid_payload.', 'Faild to decrypt the app_id in the UI loader key fetch ',  $e->getMessage());
+            return $this->common->catchTheError('invalid_payload.', 'Failed to decrypt the app_id in the UI loader key fetch ',  $e->getMessage());
         }
-        //check if the app is active
-        $application= Application::where('token',($app_id))->where('status',ActiveType::ACTIVE)->first();
-        if(!$application){
+
+        // Construct cache key
+        $cacheKey = 'App_activation_' . $app_id . '_' . now()->toDateTimeString();
+
+        // Use Cache::remember to fetch the application or query the database if not in cache
+        $application = Cache::remember($cacheKey, now()->addMinutes(1), function () use ($app_id) {
+            return Application::where('token', $app_id)
+                ->where('status', ActiveType::ACTIVE)
+                ->first();
+        });
+
+        if (!$application) {
             $response = [
-            'success' => false,
-            'message' => 'Application not active or invalid.',
+                'success' => false,
+                'message' => 'Application not active or invalid.',
             ];
             Http::post($this->webhookUrl, [
-            'content' => "Application not active or invalid app token: " . $request['app_id'] . "\nReq encrypted app token : " . encrypt($request['app_id']),
+                'content' => "Application not active or invalid app token: " . $request['app_id'] . "\nReq encrypted app token : " . encrypt($request['app_id']),
             ]);
             return response($this->common->encryptJson($response), 404);
         }
-        //create session
+
+        // Create session
         $session = new LicenseSession();
         $session->app_id = $application->id;
         $session->type = 'ui init';
@@ -113,12 +125,11 @@ class uiLoader extends Controller
             'success' => true,
             'token' => $session->token,
         ];
+
         Http::post($this->webhookUrl, [
             'content' => "init success",
         ]);
-        // Http::post($this->webhookUrl, [
-        //     'content' => "```New ui loader session created app token: " . $request['app_id'] . "\nSession token : " . $session->token."```",
-        // ]);
+
         return response($this->common->encryptJson($response), 200);
     }
     public function connect(Request $request)
@@ -126,25 +137,25 @@ class uiLoader extends Controller
         $response = Http::post($this->webhookUrl, [
             'content' => "incoming from requet from ui loader in connect rquest\n  Req\n```json\n" . json_encode($request, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . '```',
         ]);
-        return response()->json(['success' => true,'data_from_your_loader'=>$request->all()]);
+        return response()->json(['success' => true, 'data_from_your_loader' => $request->all()]);
     }
     /**
      * get license fro the ui loader
      * @param mixed $license
      */
-    public function getLicense(string $license,Request $request)
+    public function getLicense(string $license, Request $request)
     {
         Http::post($this->webhookUrl, [
-            'content' => "Init Dump Body:\n ```" . json_encode($request->all()) . "```\nHeaders : \n```" . json_encode($request->headers->all())."```",
+            'content' => "Init Dump Body:\n ```" . json_encode($request->all()) . "```\nHeaders : \n```" . json_encode($request->headers->all()) . "```",
         ]);
         // check generated UI loader session
         $token = $request->header($this->common->decryptString('token'));
-        if (!$token OR !$this->common->isValidUuid($this->common->decryptString($token))) {
+        if (!$token or !$this->common->isValidUuid($this->common->decryptString($token))) {
             return $this->common->returnBadRequest('Token format is not valid.');
         }
-       $token = $this->common->decryptString($token);
-        $session = LicenseSession::where('token', $token)->where('type','ui init')->first();
-        if(!$session){
+        $token = $this->common->decryptString($token);
+        $session = LicenseSession::where('token', $token)->where('type', 'ui init')->first();
+        if (!$session) {
             $response = [
                 'success' => false,
                 'message' => 'Ui loader handshake fails.',
@@ -153,7 +164,7 @@ class uiLoader extends Controller
             return response($responseEnc, 400);
         } else {
             $sessionTimeout = Carbon::parse($session->created_at)->addSeconds($session->duration); // Corrected typo
-            if($sessionTimeout->isPast()){
+            if ($sessionTimeout->isPast()) {
                 $response = [
                     'success' => false,
                     'message' => 'Request timeout, please try again.',
@@ -163,7 +174,7 @@ class uiLoader extends Controller
             }
         }
         // verify app_id header and get the license informationl
-        if(!$request->header('appid')){
+        if (!$request->header('appid')) {
             return $this->common->returnBadRequest('the app_id is required');
         }
         try {
@@ -172,8 +183,8 @@ class uiLoader extends Controller
             return $this->common->catchTheError('invalid_payload.', 'Faild to decrypt the app_id in the UI loader key fetch ',  $e->getMessage());
         }
         //check if the app is active
-        $application= Application::where('token',($app_id))->where('status',ActiveType::ACTIVE)->first();
-        if(!$application){
+        $application = Application::where('token', ($app_id))->where('status', ActiveType::ACTIVE)->first();
+        if (!$application) {
             $response = [
                 'success' => false,
                 'message' => 'Application not active or invalid.',
@@ -184,7 +195,7 @@ class uiLoader extends Controller
             return response($this->common->encryptJson($response), 404);
         }
         // get the license information from the database or API
-        $license = License::where('license_value', $license)->orWhere('uuid_value',$license)->first();
+        $license = License::where('license_value', $license)->orWhere('uuid_value', $license)->first();
 
         // If the license is not found, return an error
         if (!$license || !$license->app_id) {
@@ -193,9 +204,9 @@ class uiLoader extends Controller
                 'message' => 'Invaild license.',
             ];
             return response($this->common->encryptJson($response), 404);
-            }
-            // Ensure the license belongs to the authenticated user
-        if ($license->app_id !== $application->id OR $application->id !== $session->app_id) {
+        }
+        // Ensure the license belongs to the authenticated user
+        if ($license->app_id !== $application->id or $application->id !== $session->app_id) {
             $response = [
                 'success' => false,
                 'message' => 'Unauthorized access to this license.',
@@ -209,7 +220,7 @@ class uiLoader extends Controller
             $session->duration = 600;
             $session->ip = $request->ip();
             $session->save();
-            header($this->common->encryptString('token').":".$this->common->encryptString($session->token));
+            header($this->common->encryptString('token') . ":" . $this->common->encryptString($session->token));
         } catch (\Throwable $th) {
             $response = [
                 'success' => false,
@@ -220,7 +231,7 @@ class uiLoader extends Controller
         // Return the resource
         return new ResourceLicense($license);
     }
-     /**
+    /**
      * Download no ui loader.
      */
     public function download()
@@ -259,7 +270,88 @@ class uiLoader extends Controller
             return response()->json(['error' => 'Could not stream file'], 500);
         }
     }
-
-
-
+    public function connectRetrieve(Request $request)
+    {
+        // if (RateLimiter::tooManyAttempts('retrieveLoaderLog', $request->ip())) {
+        //     throw new ThrottleRequestsException('Too many requests. Please wait and try again.');
+        // }
+        $validated = $request->validate([
+            'token' => 'required|string|max:100',
+            'session'=>'required|uuid',
+        ]);
+        // $session = Cache::remember('connectStore_' . $validated['session'], now()->addMinutes(1), function () use ($validated) {
+        //     return LicenseSession::where('token', $validated['session'])->where('type', 'to no-ui')->first();
+        // });
+        // if (!$session) {
+        //     $response = [
+        //         'success' => false,
+        //         'message' => 'Ui loader handshake fails.',
+        //     ];
+        //     $responseEnc = $this->common->encryptJson($response); // Corrected typo in variable namee
+        //     return response($responseEnc, 400);
+        // }
+        $cacheKey = 'log_' . $validated['token'];
+        $log = Cache::remember($cacheKey, now()->addMinutes(1), function () use ($validated) {
+            return LoaderLog::where('token', $validated['token'])->latest()->first();
+        });
+        if(!$log){
+            return response()->json(['success'=>false,'error'=>'no data found'],404);
+        }
+        $response = Crypt::decryptString($log->data); // Decrypt the data before sending it to the client
+        DB::transaction(function () use ($log, $cacheKey) {
+            $log->delete();
+            Cache::forget($cacheKey);
+        });
+        // RateLimiter::hit('retrieveLoaderLog', $request->ip());
+        return response()->json(['data' => $response], 200);
+    }
+    public function connectStore(Request $request)
+    {
+        // if (RateLimiter::tooManyAttempts('storeLoaderLog', $request->ip())) {
+        //     throw new ThrottleRequestsException('Too many requests. Please wait and try again.');
+        // }
+        $validated = $request->validate([
+            'token'=>'required|string|max:100',
+            'data' => 'required|string',
+            'app_token' => 'required|uuid',
+            'session' => 'required|uuid',
+            'loader_id' => 'required|string|max: 10',
+        ]);
+        $application = Application::where('token', operator: $validated['app_token'])
+            ->where('status', ActiveType::ACTIVE)
+            ->first();
+        if (!$application) {
+            $response = [
+                'success' => false,
+                'message' => 'Application not active or invalid.',
+            ];
+            Http::post($this->webhookUrl, [
+                'content' => "Application not active or invalid app token: " . $request['app_id'] . "\nReq encrypted app token : " . encrypt($request['app_id']),
+            ]);
+            return response($this->common->encryptJson($response), 404);
+        }
+        $cacheKey = 'connectStore_' . $validated['session'];
+        // $session = Cache::remember($cacheKey, now()->addMinutes(1), function () use ($validated) {
+        //     return LicenseSession::where('token', $validated['session'])->where('type', 'to no-ui')->first();
+        // });
+        // if (!$session) {
+        //     $response = [
+        //         'success' => false,
+        //         'message' => 'Ui loader handshake fails.',
+        //     ];
+        //     $responseEnc = $this->common->encryptJson($response); // Corrected typo in variable namee
+        //     return response($responseEnc, 400);
+        // }
+        DB::transaction(function () use ($validated, $request,$application) {
+            LoaderLog::create([
+                'token' => $validated['token'],
+                'app_id' => $application->id,
+                'loader_id' => $validated['loader_id'],
+                'data' => Crypt::encryptString($validated['data']), // Encrypt the data
+                'ip_address' => $request->ip(),
+            ]);
+        });
+        // RateLimiter::hit('storeLoaderLog', $request->ip());
+        return response('');
+    }
 }
