@@ -12,11 +12,11 @@ use App\Http\Controllers\CustomerSubController;
 use App\Http\Controllers\LoaderLogic\LicenseLogic;
 use App\Http\Controllers\profile\ProfileController; // Corrected casing
 use App\Http\Controllers\CustomerSubDurationController;
-use App\Http\Controllers\LoaderLogic\Index; // Corrected casing
+use App\Http\Controllers\LoaderLogic\Index as IndexClass; // Corrected casing
 use App\Http\Controllers\ProductDownloadController;
 use App\Models\AuthLoader;
 use Laravel\Fortify\Http\Controllers\NewPasswordController;
-use App\Http\Controllers\LoaderLogic\uiLoader;
+use App\Http\Controllers\LoaderLogic\UiLoader;
 
 // Public Routes
 Route::post('/sanctum/token', function (Request $request) {
@@ -87,7 +87,7 @@ Route::group(['middleware' => 'auth:sanctum', 'prefix' => 'user'], function () {
 
 // Loader Routes
 Route::prefix('loader')->group(function () {
-    Route::post('/', [Index::class, 'index']);
+    Route::post('/', [IndexClass::class, 'index']);
     Route::get('/license/{license}', [UiLoader::class, 'getLicense']);
     Route::post('/license', [UiLoader::class, 'index']);
     Route::get('/download/noui', [UiLoader::class, 'download']);
