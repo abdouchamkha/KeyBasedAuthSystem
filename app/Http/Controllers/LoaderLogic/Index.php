@@ -133,7 +133,7 @@ class Index extends Controller
             }
             // check ui loader hash
             $ui_loader = AuthLoader::select(['id', 'version', 'created_at', 'unsupported_at', 'lang', 'hash'])
-                ->where('app_id', $application->id)
+                // ->where('app_id', $application->id)
                 ->where('hash', $request['ui_hash'])
                 ->where('loader_type', 'ui')
                 ->orderByDesc('version')
