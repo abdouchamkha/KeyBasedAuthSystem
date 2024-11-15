@@ -318,9 +318,9 @@ class Index extends Controller
                         }
                     }
                     $bannedHwid = LicenseHwid::where('hwid', $request['hwid'])
-                        ->orWhere('ip', $ipAddress)
-                        ->whereNotNull('banned_at')
-                        ->first();
+                    ->orWhere('ip', $ipAddress)
+                    ->whereNotNull('banned_at')
+                    ->first();
                     if ($bannedHwid) {
                         $response = [
                             'success' => false,
