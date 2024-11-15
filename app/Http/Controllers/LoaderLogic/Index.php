@@ -173,8 +173,8 @@ class Index extends Controller
                 $latestVersion = $auth_loader->first();
                 $previousVersion = $auth_loader->last();
                 // Determine which version is being used
-                if ($request['ver'] != $latestVersion->version) {
-                    if ($request['ver'] == $previousVersion->version && $previousVersion->unsupported_at && $previousVersion->unsupported_at->isPast()) {
+                if ($request['backend_version'] != $latestVersion->version) {
+                    if ($request['backend_version'] == $previousVersion->version && $previousVersion->unsupported_at && $previousVersion->unsupported_at->isPast()) {
                         $response = [
                             'success' => false,
                             'message' => 'Version is outdated.',
@@ -319,7 +319,7 @@ class Index extends Controller
                     }
                     $bannedHwid = LicenseHwid::where('hwid', $request['hwid'])
                         ->orWhere('ip', $ipAddress)
-                        ->where('banned_at','!=',null)
+                        ->whereNotNull('banned_at')
                         ->first();
                     if ($bannedHwid) {
                         $response = [
