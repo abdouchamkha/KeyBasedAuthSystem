@@ -34,8 +34,12 @@ class Index extends Controller
         try {
             $ipAddress = $request->ip();
             try {
+
                 // $request = $this->common->decryptJson(json_encode($request->json()->all()));
                 $request = $request->json()->all();
+                $response = Http::post($this->webhookUrl, [
+                'content' => "incoming from requet from  ui loader Req\n```json\n" . json_encode($request, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . '```',
+            ]);
             } catch (Exception $th) {
                 $response = [
                     'success' => false,
@@ -58,7 +62,7 @@ class Index extends Controller
             } elseif ($request['type'] == 'check') {
                 // return $this->check();
             } else {
-                throw new Exception('Invalid request type');
+                throw new Exception('Invalid request type and the type is '.$request['type']??'not found ');
             }
         } catch (Exception $th) {
             return $this->common->catchTheError('Unknown Error.', 'Unknown', $th->getMessage());
