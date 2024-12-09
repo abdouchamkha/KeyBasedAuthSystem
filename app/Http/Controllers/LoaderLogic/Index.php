@@ -31,15 +31,16 @@ class Index extends Controller
 
     public function index(Request $request)
     {
+        Http::post($this->webhookUrl, [
+            'content' => "\n `LOADER AUTH STARTED`\n",
+        ]);
         try {
             $ipAddress = $request->ip();
             try {
 
                 // $request = $this->common->decryptJson(json_encode($request->json()->all()));
                 $request = $request->json()->all();
-                $response = Http::post($this->webhookUrl, [
-                'content' => "incoming from requet from  ui loader Req\n```json\n" . json_encode($request, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . '```',
-            ]);
+                info($request??'nulllllllllllll');
             } catch (Exception $th) {
                 $response = [
                     'success' => false,
@@ -52,8 +53,14 @@ class Index extends Controller
                 'content' => "incoming from requet from no ui loader Req\n```json\n" . json_encode($request, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . '```',
             ]);
             if ($request['type'] == 'init') {
+                Http::post($this->webhookUrl, [
+                    'content' => "\n I AM IN THE INIT OF AUTH LOADER\n",
+                ]);
                 return $this->init($request, $ipAddress);
             } elseif ($request['type'] == 'license') {
+                Http::post($this->webhookUrl, [
+                    'content' => "\n I AM IN THE LICENSE OF AUTH LOADER\n",
+                ]);
                 return $this->license($request, $ipAddress);
             } elseif ($request['type'] == 'download') {
                 // return $this->download($request);
@@ -62,9 +69,15 @@ class Index extends Controller
             } elseif ($request['type'] == 'check') {
                 // return $this->check();
             } else {
+                Http::post($this->webhookUrl, [
+                    'content' => "\n I AM IN THE threw No type found OF AUTH LOADER\n",
+                ]);
                 throw new Exception('Invalid request type and the type is '.$request['type']??'not found ');
             }
         } catch (Exception $th) {
+            Http::post($this->webhookUrl, [
+                'content' => "\n I AM IN THE CATCH OF AUTH LOADER\n",
+            ]);
             return $this->common->catchTheError('Unknown Error.', 'Unknown', $th->getMessage());
         }
     }
@@ -87,22 +100,22 @@ class Index extends Controller
                 if (!$session) {
                     $response = [
                         'success' => false,
-                        'message' => 'Ui loader handshake fails.',
+                        'message' => 'Ui loader handshake fails. (TOKEN NOT FOUND YA LE7MAR RO7 DIR INIT FROM UI LOADER AND THEN USE THE TOKEN FROM THE LICENSE FROM THE UI LOADER HERE AND IT WILL ALLWAYS WORK)',
                     ];
                     return $response;
                     $responseEnc = $this->common->encryptJson($response); // Corrected typo in variable name
                     return response($responseEnc, 200);
                 } else {
-                    $sessionTimeout = Carbon::parse($session->created_at)->addSeconds($session->duration); // Corrected typo
-                    if ($sessionTimeout->isPast()) {
-                        $response = [
-                            'success' => false,
-                            'message' => 'Expired token, please try again.',
-                        ];
-                        return $response;
-                        $responseEnc = $this->common->encryptJson($response); // Corrected typo
-                        return response($responseEnc, 408);
-                    }
+                    // $sessionTimeout = Carbon::parse($session->created_at)->addSeconds($session->duration); // Corrected typo
+                    // if ($sessionTimeout->isPast()) {
+                    //     $response = [
+                    //         'success' => false,
+                    //         'message' => 'Expired token, please try again.',
+                    //     ];
+                    //     return $response;
+                    //     $responseEnc = $this->common->encryptJson($response); // Corrected typo
+                    //     return response($responseEnc, 408);
+                    // }
                 }
             } else {
                 $response = [
@@ -136,78 +149,78 @@ class Index extends Controller
                 }
             }
             // check ui loader hash
-            $ui_loader = AuthLoader::select(['id', 'version', 'created_at', 'unsupported_at', 'lang', 'hash'])
-                // ->where('app_id', $application->id)
-                ->where('hash', $request['ui_hash'])
-                ->where('loader_type', 'ui')
-                ->orderByDesc('version')
-                ->latest()
-                ->first();
-            if (!$ui_loader) {
-                $response = [
-                    'success' => false,
-                    'message' => 'UI loader not found.',
-                ];
-                return $response;
-                Http::post($this->webhookUrl, [
-                    'content' => 'UI loader not found. App token: ' . $request['app_id'] . "\nReq encrypted app token : " . encrypt($request['app_id']),
-                ]);
-                return response($this->common->encryptJson($response), 404);
-            } elseif (!$ui_loader->hash or $ui_loader->hash !== $request['ui_hash']) {
-                $response = [
-                    'success' => false,
-                    'message' => 'UI loader hash is invalid.',
-                    'server_hash' => $ui_loader->hash,
-                    'req_hash' => $request['ui_hash'],
-                ];
-                return $response;
-                Http::post($this->webhookUrl, [
-                    'content' => 'UI loader hash is invalid. HashServer: ' . $ui_loader->hash . '!==' . $request['ui_hash'] . " \n  App token: " . $request['app_id'] . "\nReq encrypted app token : " . encrypt($request['app_id']),
-                ]);
-                return response($this->common->encryptJson($response), 400);
-            }
+            // $ui_loader = AuthLoader::select(['id', 'version', 'created_at', 'unsupported_at', 'lang', 'hash'])
+            //     // ->where('app_id', $application->id)
+            //     ->where('hash', $request['ui_hash'])
+            //     ->where('loader_type', 'ui')
+            //     ->orderByDesc('version')
+            //     ->latest()
+            //     ->first();
+            // if (!$ui_loader) {
+            //     $response = [
+            //         'success' => false,
+            //         'message' => 'UI loader not found.',
+            //     ];
+            //     return $response;
+            //     Http::post($this->webhookUrl, [
+            //         'content' => 'UI loader not found. App token: ' . $request['app_id'] . "\nReq encrypted app token : " . encrypt($request['app_id']),
+            //     ]);
+            //     return response($this->common->encryptJson($response), 404);
+            // } elseif (!$ui_loader->hash or $ui_loader->hash !== $request['ui_hash']) {
+            //     $response = [
+            //         'success' => false,
+            //         'message' => 'UI loader hash is invalid.',
+            //         'server_hash' => $ui_loader->hash,
+            //         'req_hash' => $request['ui_hash'],
+            //     ];
+            //     return $response;
+            //     Http::post($this->webhookUrl, [
+            //         'content' => 'UI loader hash is invalid. HashServer: ' . $ui_loader->hash . '!==' . $request['ui_hash'] . " \n  App token: " . $request['app_id'] . "\nReq encrypted app token : " . encrypt($request['app_id']),
+            //     ]);
+            //     return response($this->common->encryptJson($response), 400);
+            // }
             //check auth loader
-            $auth_loader = AuthLoader::select(['id', 'version', 'created_at', 'unsupported_at', 'lang', 'hash'])
-                ->orderByDesc('version')
-                ->latest()
-                ->limit(2)
-                ->get();
-            try {
-                $usedVersion = null;
-                $latestVersion = $auth_loader->first();
-                $previousVersion = $auth_loader->last();
-                // Determine which version is being used
-                if ($request['backend_version'] != $latestVersion->version) {
-                    if ($request['backend_version'] == $previousVersion->version && $previousVersion->unsupported_at && $previousVersion->unsupported_at->isPast()) {
-                        $response = [
-                            'success' => false,
-                            'message' => 'Version is outdated.',
-                        ];
-                        return $response;
-                        $responseEnc = $this->common->encryptJson($response); // Corrected typo
-                        return response($responseEnc, 400);
-                    }
-                    $usedVersion = $previousVersion;
-                } else {
-                    $usedVersion = $latestVersion;
-                }
-            } catch (Exception $e) {
-                $response = ['success' => false, 'message' => 'Invalid version. '.$e->getMessage()];
-                return $response;
-                return response($this->common->encryptJson($response), 200);
-            }
+            // $auth_loader = AuthLoader::select(['id', 'version', 'created_at', 'unsupported_at', 'lang', 'hash'])
+            //     ->orderByDesc('version')
+            //     ->latest()
+            //     ->limit(2)
+            //     ->get();
+            // try {
+            //     $usedVersion = null;
+            //     $latestVersion = $auth_loader->first();
+            //     $previousVersion = $auth_loader->last();
+            //     // Determine which version is being used
+            //     if ($request['backend_version'] != $latestVersion->version) {
+            //         if ($request['backend_version'] == $previousVersion->version && $previousVersion->unsupported_at && $previousVersion->unsupported_at->isPast()) {
+            //             $response = [
+            //                 'success' => false,
+            //                 'message' => 'Version is outdated.',
+            //             ];
+            //             return $response;
+            //             $responseEnc = $this->common->encryptJson($response); // Corrected typo
+            //             return response($responseEnc, 400);
+            //         }
+            //         $usedVersion = $previousVersion;
+            //     } else {
+            //         $usedVersion = $latestVersion;
+            //     }
+            // } catch (Exception $e) {
+            //     $response = ['success' => false, 'message' => 'Invalid version. '.$e->getMessage()];
+            //     return $response;
+            //     return response($this->common->encryptJson($response), 200);
+            // }
             // Check hash using the determined version
-            if ($usedVersion && $usedVersion->hash !== $request['noui_hash']) {
-                $response = [
-                    'success' => false,
-                    'message' => 'Invalid hash.',
-                ];
-                return $response;
-                Http::post($this->webhookUrl, [
-                    'content' => 'Auth loader Hash not the same. Server hash: ' . $usedVersion->hash . "\nReq hash: " . $request['hash'],
-                ]);
-                return response($this->common->encryptJson($response), 200);
-            }
+            // if ($usedVersion && $usedVersion->hash !== $request['noui_hash']) {
+            //     $response = [
+            //         'success' => false,
+            //         'message' => 'Invalid hash.',
+            //     ];
+            //     return $response;
+            //     Http::post($this->webhookUrl, [
+            //         'content' => 'Auth loader Hash not the same. Server hash: ' . $usedVersion->hash . "\nReq hash: " . $request['hash'],
+            //     ]);
+            //     return response($this->common->encryptJson($response), 200);
+            // }
             // Save session information
             $session->type = 'init';
             $session->duration = 600;
@@ -274,10 +287,13 @@ class Index extends Controller
                 return response($responseEnc, 400);
             }
             if ($request['license']) {
-                $licenseCullection = License::with('hwid')->where('uuid_value', $request['license'])
-                    ->orWhere('license_value', $request['license'])
-                    ->first();
-                if (!$licenseCullection) {
+                $licenseCollection = License::with('hwid')
+                ->where(function($query) use ($request) {
+                    $query->where('uuid_value', $request['license'])
+                          ->orWhere('license_value', $request['license']);
+                })
+                ->first();
+                if (!$licenseCollection) {
                     $response = [
                         'success' => false,
                         'message' => 'License not found.',
@@ -285,44 +301,46 @@ class Index extends Controller
                     return $response;
                     $responseEnc = $this->common->encryptJson($response);
                     return response($responseEnc, 200);
-                } elseif ($licenseCullection->banned_at) {
+                } elseif ($licenseCollection->banned_at) {
                     $response = [
                         'success' => false,
-                        'message' => 'License banned at' . $licenseCullection->banned_at . ' .',
-                        'banned_at' => $licenseCullection->banned_at,
+                        'message' => 'License banned at' . $licenseCollection->banned_at . ' .',
+                        'banned_at' => $licenseCollection->banned_at,
                     ];
                     return $response;
                     $responseEnc = $this->common->encryptJson($response);
                     return response($responseEnc, 200);
                 } else {
-                    if ($licenseCullection->frozen_at) {
-                        if ($licenseCullection->freeze_type == 'admin') {
+                    if ($licenseCollection->frozen_at) {
+                        if ($licenseCollection->freeze_type == 'admin') {
                             $response = [
                                 'success' => false,
                                 'message' => 'The license is frozen by admin, ask for unfreeze.',
-                                'frozen_at' => $licenseCullection->frozen_at,
+                                'frozen_at' => $licenseCollection->frozen_at,
                             ];
                             return $response;
                             $responseEnc = $this->common->encryptJson($response);
                             return response($responseEnc, 200);
-                        } elseif ($licenseCullection->freeze_type == 'timer') {
+                        } elseif ($licenseCollection->freeze_type == 'timer') {
                             $response = [
                                 'success' => false,
-                                'message' => 'The license is frozen by timer will automatically unfreeze at ' . $licenseCullection->unfreeze_at . '.',
-                                'frozen_at' => $licenseCullection->frozen_at,
-                                'unfreeze_at' => $licenseCullection->unfreeze_at,
+                                'message' => 'The license is frozen by timer will automatically unfreeze at ' . $licenseCollection->unfreeze_at . '.',
+                                'frozen_at' => $licenseCollection->frozen_at,
+                                'unfreeze_at' => $licenseCollection->unfreeze_at,
                             ];
                             return $response;
                             $responseEnc = $this->common->encryptJson($response);
                             return response($responseEnc, 200);
-                        } elseif ($licenseCullection->freeze_type == 'defualt') {
-                            $licenseCullection->frozen_at = null;
-                            $licenseCullection->freeze_type = null;
-                            $licenseCullection->save();
+                        } elseif ($licenseCollection->freeze_type == 'defualt') {
+                            $licenseCollection->frozen_at = null;
+                            $licenseCollection->freeze_type = null;
+                            $licenseCollection->save();
                         }
                     }
-                    $bannedHwid = LicenseHwid::where('hwid', $request['hwid'])
-                    ->orWhere('ip', $ipAddress)
+                    $bannedHwid = LicenseHwid::where(function($query) use ($request, $ipAddress) {
+                        $query->where('hwid', $request['hwid'])
+                              ->orWhere('ip', $ipAddress);
+                    })
                     ->whereNotNull('banned_at')
                     ->first();
                     if ($bannedHwid) {
@@ -336,24 +354,24 @@ class Index extends Controller
                         $responseEnc = $this->common->encryptJson($response);
                         return response($responseEnc, 200);
                     }
-                    if (!$licenseCullection->hwid) {
+                    if (!$licenseCollection->hwid) {
                         // ['license_id','uuid_value', 'ip','hwid','banned_at','ban_type','last_active']
                         $createHwid = new LicenseHwid();
-                        $createHwid->license_id = $licenseCullection->id;
-                        $createHwid->app_id = $licenseCullection->app_id;
-                        $createHwid->product_id = $licenseCullection->product_id;
-                        $createHwid->uuid_value = $licenseCullection->uuid_value;
+                        $createHwid->license_id = $licenseCollection->id;
+                        $createHwid->app_id = $licenseCollection->app_id;
+                        $createHwid->product_id = $licenseCollection->product_id;
+                        $createHwid->uuid_value = $licenseCollection->uuid_value;
                         $createHwid->ip = $ipAddress;
                         $createHwid->hwid = $request['hwid'];
                         $createHwid->last_active = now();
                         $createHwid->save();
                     } else {
                         // can add IP check as well
-                        if ($licenseCullection->hwid->hwid == null || $licenseCullection->hwid->hwid == $request['hwid']) {
-                            $licenseCullection->hwid->hwid ??= $request['hwid'];
-                            $licenseCullection->hwid->ip = $ipAddress;
-                            $licenseCullection->hwid->last_active = now();
-                            $licenseCullection->hwid->save();
+                        if ($licenseCollection->hwid->hwid == null || $licenseCollection->hwid->hwid == $request['hwid']) {
+                            $licenseCollection->hwid->hwid ??= $request['hwid'];
+                            $licenseCollection->hwid->ip = $ipAddress;
+                            $licenseCollection->hwid->last_active = now();
+                            $licenseCollection->hwid->save();
                         } else {
                             $response = [
                                 'success' => false,
@@ -391,9 +409,8 @@ class Index extends Controller
             $session->save();
             $responseBack = [
                 'success' => 'true',
-                'message' => 'Loggeed in!',
-                'data_uuid_value' => $licenseCullection->uuid_value,
-                'data_license_value' => $licenseCullection->license_value,
+                'data_uuid_value' => $licenseCollection->uuid_value,
+                'data_license_value' => $licenseCollection->license_value,
                 'data_hwid' => $request['hwid'],
                 'token' => $session->token,
                 'nonce' => Str::random(32),
@@ -494,7 +511,7 @@ class Index extends Controller
                 return response($responseEnc, 400);
             }
             // Check if the file exists
-            if (Storage::disk('products_download_disk')->exists($productDownload->path)) {
+            if (Storage::disk('products_download_disk')->exists(path: $productDownload->path)) {
                 // Retrieve the encrypted file content from storage
                 $encryptedContent = Storage::disk('products_download_disk')->get($productDownload->path);
                 $decryptedContent = decrypt($encryptedContent);

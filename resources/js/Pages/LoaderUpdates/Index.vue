@@ -1,5 +1,5 @@
 <script setup>
-import LoadersTable from '@/Components/Dashboard/DataTable/LoadersTable.vue';
+import LoadersTable from '@/Components/Dashboard/DataTable/LoadersTable/LoadersTable.vue';
 import SelectLang from '@/Components/Dashboard/SelectLang.vue';
 import InputError from '@/Components/InputError.vue';
 import Modal from '@/Components/Modal.vue';
@@ -132,7 +132,7 @@ const Stages = [
                             <div class="mt-6">
                                 <Label for="file">Upload file:</Label>
                                 <Input id="file" type="file" @keyup.enter="storeLoader"  @input="form.file = $event.target.files[0]" placeholder="UploadFile"  />
-                                
+
                                 <Progress v-if="form.progress" :value="form.progress.percentage" max="100" class="w-3/5 mt-2 bg-green-500" />
                                 <InputError :message="form.errors.file" class="mt-2" />
                             </div>

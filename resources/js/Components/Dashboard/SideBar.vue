@@ -65,6 +65,14 @@ const page = usePage()
             Products
           </Link>
           <Link
+            :href="route('files.index')"
+            class="flex items-center gap-3 px-3 py-2 transition-all rounded-lg hover:text-primary"
+            :class="page.component === 'Files' ? 'bg-muted text-primary' : 'text-muted-foreground'"
+          >
+            <Boxes class="w-4 h-4"/>
+            Files
+          </Link>
+          <Link
             :href="route('loader-updates.index')"
             class="flex items-center gap-3 px-3 py-2 transition-all rounded-lg hover:text-primary"
             :class="page.component === 'LoaderUpdates' ? 'bg-muted text-primary' : 'text-muted-foreground'"

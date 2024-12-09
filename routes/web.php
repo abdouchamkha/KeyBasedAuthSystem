@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\AdminFles;
 use App\Http\Controllers\Admin\AuthLoader as AdminAuthLoader;
 use Inertia\Inertia;
 use App\Models\AuthLoader;
@@ -19,8 +20,9 @@ Route::prefix('admins')->middleware( ['auth','verified'])->group(function () {
         return Inertia::render('Dashboard');
     })->middleware(['auth', 'verified'])->name('dashboard');
     Route::resource('loader-updates', AdminAuthLoader::class);
+    Route::resource('files', AdminFles::class);
+    Route::post('/files/product', [AdminFles::class, 'createProduct'])->name('files.create.products');
     Route::get('/products', function () {
-
         return Inertia::render('Products');
     })->middleware(['auth', 'verified'])->name('products');
 

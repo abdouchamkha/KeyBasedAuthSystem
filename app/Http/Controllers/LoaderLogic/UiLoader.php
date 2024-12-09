@@ -79,6 +79,9 @@ class UiLoader extends Controller
     public function init(Request $request)
     {
         Http::post($this->webhookUrl, [
+            'content' => "\n I AM IN THE INIT OF UI LOADER\n",
+        ]);
+        Http::post($this->webhookUrl, [
             'content' => "Init Dump Body:\n ```" . json_encode($request->all()) . "```\nHeaders : \n```" . json_encode($request->headers->all()) . "```",
         ]);
 
@@ -134,6 +137,9 @@ class UiLoader extends Controller
     }
     public function connect(Request $request)
     {
+        Http::post($this->webhookUrl, [
+            'content' => "\n I AM IN THE Connect\n",
+        ]);
         $response = Http::post($this->webhookUrl, [
             'content' => "incoming from requet from ui loader in connect rquest\n  Req\n```json\n" . json_encode($request, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . '```',
         ]);
@@ -145,6 +151,9 @@ class UiLoader extends Controller
      */
     public function getLicense(string $license, Request $request)
     {
+        Http::post($this->webhookUrl, [
+            'content' => "\n I AM IN THE LICENSE OF UI LOADER\n",
+        ]);
         Http::post($this->webhookUrl, [
             'content' => "Init Dump Body:\n ```" . json_encode($request->all()) . "```\nHeaders : \n```" . json_encode($request->headers->all()) . "```",
         ]);

@@ -89,6 +89,11 @@
                     <Package class="w-5 h-5" />
                     Products
                 </a>
+                <a href="#"
+                    class="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground">
+                    <Package class="w-5 h-5" />
+                    Files
+                </a>
 
                 <a href="#"
                     class="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground">
