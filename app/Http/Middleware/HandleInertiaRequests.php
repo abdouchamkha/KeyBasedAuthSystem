@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use Illuminate\Http\Request;
 use Inertia\Middleware;
+use Closure;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -29,18 +30,25 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
-         // Add headers to prevent Cloudflare from serving cached content for XHR requests
-    if ($request->ajax() || $request->wantsJson()) {
-        $response->header('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-        $response->header('Pragma', 'no-cache');
-        $response->header('Expires', '0');
-    }
-        return [
-            ...parent::share($request),
+        return array_merge(parent::share($request), [
             'auth' => [
                 'user' => $request->user(),
             ],
             'routeName' => optional($request->route())->getName(),
-        ];
+        ]);
+    }
+
+    public function handle($request, Closure $next)
+    {
+        $response = parent::handle($request, $next);
+        
+        // Add headers to prevent Cloudflare from serving cached content for XHR requests
+        if ($request->ajax() || $request->wantsJson()) {
+            $response->header('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+            $response->header('Pragma', 'no-cache');
+            $response->header('Expires', '0');
+        }
+        
+        return $response;
     }
 }

@@ -24,4 +24,11 @@ createInertiaApp({
     progress: {
         color: '#4B5563',
     },
+    setup: {
+        onError: (error) => {
+            if (error.response?.status === 403) {
+                window.location.reload();
+            }
+        }
+    }
 });
