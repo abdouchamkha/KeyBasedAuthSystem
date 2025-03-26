@@ -29,6 +29,12 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+         // Add headers to prevent Cloudflare from serving cached content for XHR requests
+    if ($request->ajax() || $request->wantsJson()) {
+        $response->header('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        $response->header('Pragma', 'no-cache');
+        $response->header('Expires', '0');
+    }
         return [
             ...parent::share($request),
             'auth' => [

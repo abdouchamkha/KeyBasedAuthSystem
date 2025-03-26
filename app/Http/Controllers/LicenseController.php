@@ -111,7 +111,7 @@ class LicenseController extends Controller
         }
 
         // Eager load relationships
-        $license->load(  [ 'sessions', 'hwid']);
+        $license->load([ 'sessions', 'hwid']);
 
         // Return the resource
         return new ResourceLicense($license);
