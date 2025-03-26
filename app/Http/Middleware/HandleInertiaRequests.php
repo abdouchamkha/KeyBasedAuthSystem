@@ -42,7 +42,7 @@ class HandleInertiaRequests extends Middleware
     {
         $response = parent::handle($request, $next);
         
-        // Add headers to prevent Cloudflare from serving cached content for XHR requests
+        // Add headers to prevent caching when Cloudflare challenge might occur
         if ($request->ajax() || $request->wantsJson()) {
             $response->header('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
             $response->header('Pragma', 'no-cache');
