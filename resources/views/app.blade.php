@@ -3,8 +3,8 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <meta name="cf-2fa-verify" content="true">
-        <meta name="rocket-loader" content="off">
+        <!-- <meta name="cf-2fa-verify" content="true">
+        <meta name="rocket-loader" content="off"> -->
         <title inertia>{{ config('app.name', 'Laravel') }}</title>
 
         <!-- Fonts -->

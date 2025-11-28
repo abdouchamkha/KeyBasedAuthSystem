@@ -10,7 +10,7 @@ return Application::configure(basePath: dirname(__DIR__))
         api: __DIR__.'/../routes/api.php',
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
-        apiPrefix: '',
+        apiPrefix: 'api',
     )
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->statefulApi();
@@ -19,11 +19,6 @@ return Application::configure(basePath: dirname(__DIR__))
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
         ]);
 
-        // Configure API middleware
-        $middleware->group('api', [
-            \Illuminate\Routing\Middleware\ThrottleRequests::class.':api',
-            'api',
-        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

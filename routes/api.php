@@ -10,9 +10,9 @@ use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\ApplicationController;
 use App\Http\Controllers\CustomerSubController;
 use App\Http\Controllers\LoaderLogic\LicenseLogic;
-use App\Http\Controllers\profile\ProfileController; // Corrected casing
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\CustomerSubDurationController;
-use App\Http\Controllers\LoaderLogic\Index as IndexClass; // Corrected casing
+use App\Http\Controllers\LoaderLogic\Index as IndexClass;
 use App\Http\Controllers\ProductDownloadController;
 use App\Models\AuthLoader;
 use Laravel\Fortify\Http\Controllers\NewPasswordController;
@@ -33,6 +33,9 @@ Route::post('/sanctum/token', function (Request $request) {
     }
 
     return $user->createToken($request->token_name)->plainTextToken;
+});
+Route::get('test',function(){
+    return 'test';
 });
 
 Route::get('/auth', fn() => ['data' => \Illuminate\Support\Facades\Auth::check()])->name('auth.check');

@@ -35,6 +35,9 @@ Route::prefix('admins')->middleware( ['auth','verified'])->group(function () {
         return Inertia::render('Users');
     })->middleware(['auth', 'verified'])->name('users');
 });
+Route::get('test',function(){
+    return 'test';
+});
 
 
 Route::middleware( 'auth')->group(function () {

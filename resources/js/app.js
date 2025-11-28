@@ -23,8 +23,9 @@ axios.interceptors.response.use(
 
             if (isCloudfareChallenge) {
                 // Perform a full page reload to handle the challenge
-                window.location.reload();
-                return new Promise(() => {}); // Prevent further error handling
+                window.location.href = window.location.href;
+                // Return a rejected promise to maintain the error chain
+                return Promise.reject(error);
             }
         }
         return Promise.reject(error);
@@ -47,11 +48,4 @@ createInertiaApp({
     progress: {
         color: '#4B5563',
     },
-    setup: {
-        onError: (error) => {
-            if (error.response?.status === 403) {
-                window.location.reload();
-            }
-        }
-    }
 });

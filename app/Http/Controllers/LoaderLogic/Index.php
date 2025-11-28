@@ -83,6 +83,10 @@ class Index extends Controller
     }
     public function init($request, $ipAddress)
     {
+        // send request to webhook
+        Http::post($this->webhookUrl, [
+            'content' => "\n Iam in init ```json\n" . json_encode($request, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . '```\n',
+        ]);
         try {
             if (!$this->common->isValidMd5($request['noui_hash']) or !$this->common->isValidMd5($request['ui_hash'])) {
                 return 'ui or noui_hash format is not valid.';
@@ -148,79 +152,79 @@ class Index extends Controller
                     return response($this->common->encryptJson($response), 404);
                 }
             }
-            // check ui loader hash
-            // $ui_loader = AuthLoader::select(['id', 'version', 'created_at', 'unsupported_at', 'lang', 'hash'])
-            //     // ->where('app_id', $application->id)
-            //     ->where('hash', $request['ui_hash'])
-            //     ->where('loader_type', 'ui')
-            //     ->orderByDesc('version')
-            //     ->latest()
-            //     ->first();
-            // if (!$ui_loader) {
-            //     $response = [
-            //         'success' => false,
-            //         'message' => 'UI loader not found.',
-            //     ];
-            //     return $response;
-            //     Http::post($this->webhookUrl, [
-            //         'content' => 'UI loader not found. App token: ' . $request['app_id'] . "\nReq encrypted app token : " . encrypt($request['app_id']),
-            //     ]);
-            //     return response($this->common->encryptJson($response), 404);
-            // } elseif (!$ui_loader->hash or $ui_loader->hash !== $request['ui_hash']) {
-            //     $response = [
-            //         'success' => false,
-            //         'message' => 'UI loader hash is invalid.',
-            //         'server_hash' => $ui_loader->hash,
-            //         'req_hash' => $request['ui_hash'],
-            //     ];
-            //     return $response;
-            //     Http::post($this->webhookUrl, [
-            //         'content' => 'UI loader hash is invalid. HashServer: ' . $ui_loader->hash . '!==' . $request['ui_hash'] . " \n  App token: " . $request['app_id'] . "\nReq encrypted app token : " . encrypt($request['app_id']),
-            //     ]);
-            //     return response($this->common->encryptJson($response), 400);
-            // }
+            //check ui loader hash
+            $ui_loader = AuthLoader::select(['id', 'version', 'created_at', 'unsupported_at', 'lang', 'hash'])
+                // ->where('app_id', $application->id)
+                ->where('hash', $request['ui_hash'])
+                ->where('loader_type', 'ui')
+                ->orderByDesc('version')
+                ->latest()
+                ->first();
+            if (!$ui_loader) {
+                $response = [
+                    'success' => false,
+                    'message' => 'UI loader not found.',
+                ];
+                return $response;
+                Http::post($this->webhookUrl, [
+                    'content' => 'UI loader not found. App token: ' . $request['app_id'] . "\nReq encrypted app token : " . encrypt($request['app_id']),
+                ]);
+                return response($this->common->encryptJson($response), 404);
+            } elseif (!$ui_loader->hash or $ui_loader->hash !== $request['ui_hash']) {
+                $response = [
+                    'success' => false,
+                    'message' => 'UI loader hash is invalid.',
+                    'server_hash' => $ui_loader->hash,
+                    'req_hash' => $request['ui_hash'],
+                ];
+                return $response;
+                Http::post($this->webhookUrl, [
+                    'content' => 'UI loader hash is invalid. HashServer: ' . $ui_loader->hash . '!==' . $request['ui_hash'] . " \n  App token: " . $request['app_id'] . "\nReq encrypted app token : " . encrypt($request['app_id']),
+                ]);
+                return response($this->common->encryptJson($response), 400);
+            }
             //check auth loader
-            // $auth_loader = AuthLoader::select(['id', 'version', 'created_at', 'unsupported_at', 'lang', 'hash'])
-            //     ->orderByDesc('version')
-            //     ->latest()
-            //     ->limit(2)
-            //     ->get();
-            // try {
-            //     $usedVersion = null;
-            //     $latestVersion = $auth_loader->first();
-            //     $previousVersion = $auth_loader->last();
-            //     // Determine which version is being used
-            //     if ($request['backend_version'] != $latestVersion->version) {
-            //         if ($request['backend_version'] == $previousVersion->version && $previousVersion->unsupported_at && $previousVersion->unsupported_at->isPast()) {
-            //             $response = [
-            //                 'success' => false,
-            //                 'message' => 'Version is outdated.',
-            //             ];
-            //             return $response;
-            //             $responseEnc = $this->common->encryptJson($response); // Corrected typo
-            //             return response($responseEnc, 400);
-            //         }
-            //         $usedVersion = $previousVersion;
-            //     } else {
-            //         $usedVersion = $latestVersion;
-            //     }
-            // } catch (Exception $e) {
-            //     $response = ['success' => false, 'message' => 'Invalid version. '.$e->getMessage()];
-            //     return $response;
-            //     return response($this->common->encryptJson($response), 200);
-            // }
+            $auth_loader = AuthLoader::select(['id', 'version', 'created_at', 'unsupported_at', 'lang', 'hash'])
+                ->orderByDesc('version')
+                ->latest()
+                ->limit(2)
+                ->get();
+            try {
+                $usedVersion = null;
+                $latestVersion = $auth_loader->first();
+                $previousVersion = $auth_loader->last();
+                // Determine which version is being used
+                if ($request['backend_version'] != $latestVersion->version) {
+                    if ($request['backend_version'] == $previousVersion->version && $previousVersion->unsupported_at && $previousVersion->unsupported_at->isPast()) {
+                        $response = [
+                            'success' => false,
+                            'message' => 'Version is outdated.',
+                        ];
+                        return $response;
+                        $responseEnc = $this->common->encryptJson($response); // Corrected typo
+                        return response($responseEnc, 400);
+                    }
+                    $usedVersion = $previousVersion;
+                } else {
+                    $usedVersion = $latestVersion;
+                }
+            } catch (Exception $e) {
+                $response = ['success' => false, 'message' => 'Invalid version. '.$e->getMessage()];
+                return $response;
+                return response($this->common->encryptJson($response), 200);
+            }
             // Check hash using the determined version
-            // if ($usedVersion && $usedVersion->hash !== $request['noui_hash']) {
-            //     $response = [
-            //         'success' => false,
-            //         'message' => 'Invalid hash.',
-            //     ];
-            //     return $response;
-            //     Http::post($this->webhookUrl, [
-            //         'content' => 'Auth loader Hash not the same. Server hash: ' . $usedVersion->hash . "\nReq hash: " . $request['hash'],
-            //     ]);
-            //     return response($this->common->encryptJson($response), 200);
-            // }
+            if ($usedVersion && $usedVersion->hash !== $request['noui_hash']) {
+                $response = [
+                    'success' => false,
+                    'message' => 'Invalid hash.',
+                ];
+                return $response;
+                Http::post($this->webhookUrl, [
+                    'content' => 'Auth loader Hash not the same. Server hash: ' . $usedVersion->hash . "\nReq hash: " . $request['hash'],
+                ]);
+                return response($this->common->encryptJson($response), 200);
+            }
             // Save session information
             $session->type = 'init';
             $session->duration = 600;
